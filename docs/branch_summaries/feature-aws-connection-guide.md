@@ -63,4 +63,7 @@ This branch adds a concise guide on how to connect to the project's remote AWS E
 ---
 
 ## 📝 Commit Log
-*(To be completed on final commit)*
+
+```
+ac1dac2 feat(docs): add AWS EC2 connection guide and gitignore
+```
