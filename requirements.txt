@@ -1,20 +1,34 @@
-# ==========================================
-# ⚠️ CRITICAL: Python >=3.8, <3.11 REQUIRED
-# (openqaoa is not compatible with Python 3.11+)
-# Please use the setup_env.sh script to install.
-# ==========================================
+# ============================================================
+# requirements.txt — Quantum-Assisted CXL-Aware Scheduler
+# Maintained by: Devandra (P5)
+# Install: pip install -r requirements.txt
+# ============================================================
 
-openqaoa
-qiskit
-qiskit-aer
-pyqubo
-networkx
-numpy
-matplotlib
-pandas
-psutil
-scipy
-pytest
-flake8
-mypy
-black
+# --- Quantum Computing ---
+qiskit>=1.0.0
+qiskit-aer>=0.14.0
+openqaoa-core>=0.2.0
+openqaoa-qiskit>=0.2.0
+pyqubo>=1.4.0
+
+# --- Classical Computing / Data ---
+numpy>=1.26.0
+pandas>=2.1.0
+networkx>=3.2.0
+matplotlib>=3.8.0
+psutil>=5.9.0
+
+# --- Utilities ---
+python-dotenv>=1.0.0   # For loading IBM Quantum API token from .env
+
+# ============================================================
+# VERIFICATION CHECKLIST — All 5 team members confirm by EOD Day 1
+# Run: python -c "import qiskit, openqaoa, pyqubo, numpy, pandas, networkx, matplotlib, psutil"
+# If no errors → you are good. Report in team chat.
+#
+# P1 (Anjana)   — [ ] confirmed
+# P2 (Hari)     — [ ] confirmed
+# P3 (Smarth)   — [ ] confirmed
+# P4 (Vikas)    — [ ] confirmed
+# P5 (Devandra) — [ ] confirmed
+# ============================================================
