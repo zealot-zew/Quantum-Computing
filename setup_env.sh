@@ -31,7 +31,13 @@ fi
 echo "✅ Found $PYTHON_CMD"
 
 echo "📦 Creating virtual environment in .venv..."
-rm -rf .venv
+if [ -d .venv ]; then
+    echo "⚠️  .venv already exists. Set FORCE_RECREATE_VENV=1 to recreate it."
+    if [ "${FORCE_RECREATE_VENV:-0}" != "1" ]; then
+        exit 1
+    fi
+    rm -rf .venv
+fi
 $PYTHON_CMD -m venv .venv
 
 echo "🔄 Upgrading pip..."
