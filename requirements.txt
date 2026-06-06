@@ -1,0 +1,20 @@
+# ==========================================
+# ⚠️ CRITICAL: Python >=3.8, <3.11 REQUIRED
+# (openqaoa is not compatible with Python 3.11+)
+# Please use the setup_env.sh script to install.
+# ==========================================
+
+openqaoa
+qiskit
+qiskit-aer
+pyqubo
+networkx
+numpy
+matplotlib
+pandas
+psutil
+scipy
+pytest
+flake8
+mypy
+black
