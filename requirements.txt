@@ -1,0 +1,14 @@
+openqaoa
+qiskit
+qiskit-aer
+pyqubo
+networkx
+numpy
+matplotlib
+pandas
+psutil
+scipy
+pytest
+flake8
+mypy
+black
