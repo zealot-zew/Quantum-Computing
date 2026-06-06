@@ -54,8 +54,10 @@ def main() -> None:
     
     # Log the parameters received
     logger.info(
-        f"Initializing task: ID={args.task_id}, "
-        f"Memory={args.memory_mb:.1f} MB, Target NUMA Node={args.node}"
+        "Initializing task: ID=%s, Memory=%.1f MB, Target NUMA Node=%s",
+        args.task_id,
+        args.memory_mb,
+        args.node,
     )
 
 if __name__ == "__main__":
