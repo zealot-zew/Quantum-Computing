@@ -42,8 +42,9 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         "--node",
         type=int,
+        choices=[0, 1],
         required=True,
-        help="Target NUMA node ID (e.g., 0 for DRAM, 1 for CXL)"
+        help="Target NUMA node ID (0=DRAM, 1=CXL)"
     )
     return parser.parse_args()
 
