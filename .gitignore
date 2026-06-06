@@ -1,6 +1,4 @@
-# Credentials and private keys
-*.pem
-quantum.pem
+
 
 # OS metadata
 .DS_Store

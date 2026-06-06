@@ -20,7 +20,7 @@ This guide explains how to connect to the project's remote AWS EC2 instance usin
 ### 1. Open Your Terminal
 Navigate to the project root directory where the `quantum.pem` key is located:
 ```bash
-cd "/Users/hari/Documents/Quantum Computing"
+cd <Path to Quantum Computing/quantum.pem>
 ```
 
 ### 2. Set Secure Permissions on the Private Key

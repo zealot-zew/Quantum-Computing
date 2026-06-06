@@ -10,7 +10,10 @@
 
 These rules apply to **every single change**, no matter how small:
 
-1. **Never commit directly to `main`.**
+1. **Never commit or push without user permission.**
+   You must NEVER run `git commit` or `git push` without obtaining explicit, written permission from the user first.
+
+2. **Never commit directly to `main` or `master`.**
    Always create a new feature branch before making any changes:
    ```bash
    git checkout -b feature/<short-description>
@@ -20,13 +23,13 @@ These rules apply to **every single change**, no matter how small:
    # git checkout -b fix/numa-binding-bug
    ```
 
-2. **Work only on the current branch.**
+3. **Work only on the current branch.**
    Verify you are on the correct branch before writing code:
    ```bash
    git branch   # confirm active branch
    ```
 
-3. **Verify before pushing.**
+4. **Verify before pushing.**
    Before pushing to remote, always run:
    ```bash
    python -m pytest tests/          # run all tests
@@ -35,15 +38,15 @@ These rules apply to **every single change**, no matter how small:
    ```
    Only push if all checks pass.
 
-4. **Push to the feature branch only.**
+5. **Push to the feature branch only.**
    ```bash
    git push origin feature/<short-description>
    ```
 
-5. **Never force-push to shared branches.**
+6. **Never force-push to shared branches.**
    Force-push is allowed only on your own local feature branches before a first push.
 
-6. **Write clear, conventional commit messages.**
+7. **Write clear, conventional commit messages.**
    Follow the Conventional Commits format:
    ```
    <type>(<scope>): <short summary>
@@ -59,24 +62,8 @@ These rules apply to **every single change**, no matter how small:
    docs(readme): add RQAOA algorithm overview
    ```
 
-7. **Write a Branch Summary Document before every push. (MANDATORY)**
-   Before pushing your branch to remote, you MUST create or update a file named
-   `docs/branch_summaries/<branch-name>.md` that describes everything done in that branch.
-   This file is your permanent audit trail for the work done.
-
-   ```bash
-   # Example path for branch: feature/qubo-matrix-builder
-   docs/branch_summaries/feature-qubo-matrix-builder.md
-   ```
-
-   The document must follow the template defined in the
-   **[📄 Branch Summary Document](#-branch-summary-document)** section below.
-   Commit this file as the **last commit** on the branch before pushing:
-   ```bash
-   git add docs/branch_summaries/<branch-name>.md
-   git commit -m "docs(branch-summary): add summary for <branch-name>"
-   git push origin <branch-name>
-   ```
+8. **Maintain a single Progress Summary Document (MANDATORY)**
+   Instead of writing separate branch summaries, maintain a single file named `progress_summary.md` in the root of the project. This file serves as the unified status log for the project, enabling seamless collaboration with other AI instances across different chat threads. Update this file whenever tasks are completed or goals change.
 
 ---
 
@@ -491,211 +478,34 @@ Before every `git push`, verify all of the following:
 - [ ] Constants are named and documented
 - [ ] All new functions have docstrings
 - [ ] Commit message follows Conventional Commits format
-- [ ] You are on a feature branch, **not** `main`
-- [ ] Branch summary document has been written to `docs/branch_summaries/`
+- [ ] You are on a feature branch, **not** `main` or `master`
+- [ ] Progress summary file `progress_summary.md` has been updated in the root directory
 
 ---
 
-## 📄 Branch Summary Document
+## 📄 Progress Summary Document
 
-Every branch MUST have a corresponding summary document written before the branch is pushed.
-This document is the single source of truth for what was done, why it was done, and how to
-verify that the work is correct. It must be stored at:
-
-```
-docs/branch_summaries/<branch-name>.md
-```
-
-> Replace `/` in the branch name with `-` in the filename.
-> e.g., `feature/qubo-matrix-builder` → `feature-qubo-matrix-builder.md`
-
----
+To enable collaboration with AI assistants in multiple chats/sessions, the project maintains a single `progress_summary.md` file in the root directory. This acts as the shared state and audit log for all work done.
 
 ### 📋 Required Template
 
-Copy this template exactly. Every section is **mandatory**. Do not skip any section.
+The `progress_summary.md` file must follow this structure:
 
 ```markdown
-# Branch Summary: <branch-name>
+# Project Progress Summary
 
-## 📌 Overview
-<!-- One paragraph explaining the goal of this branch. What problem does it solve? -->
+## 📌 Active Context
+- **Current Branch:** `feature/<branch-name>`
+- **Latest Update:** YYYY-MM-DD
+- **Active Developer/Agent:** <name>
 
-**Branch Name:** `feature/<short-description>`
-**Author:** <your name or agent name>
-**Date Started:** YYYY-MM-DD
-**Date Completed:** YYYY-MM-DD
-**Base Branch:** `main`
+## 🚀 Active Goals & Roadmap
+- [ ] Active Task / Goal 1
+- [x] Completed Task / Goal 2
 
----
+## 📁 Files Created or Modified
+- `path/to/file.py`: Description of changes
 
-## 🎯 Goals
-<!-- A bullet list of what this branch set out to accomplish. -->
-- Goal 1
-- Goal 2
-
----
-
-## 📁 Files Changed
-
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/rqaoa/qubo_builder.py` | ADDED | Builds the QUBO matrix from task definitions |
-| `tests/test_qubo_builder.py` | ADDED | Unit tests for the QUBO builder module |
-| `src/scheduler/task_mapper.py` | MODIFIED | Added CXL latency weighting to tier mapping |
-
-**Change Types:** `ADDED` | `MODIFIED` | `DELETED` | `REFACTORED`
-
----
-
-## 🔧 What Was Implemented
-<!-- Describe each significant piece of work done. Be specific. -->
-
-### 1. <Feature / Fix Name>
-- What it does
-- Why it was implemented this way
-- Any key design decisions made
-
-### 2. <Feature / Fix Name>
-- What it does
-- Why it was implemented this way
-
----
-
-## 🧪 How to Verify
-<!-- Step-by-step instructions for someone else to verify the work is correct. -->
-
-```bash
-# 1. Activate the virtual environment
-source .venv/bin/activate
-
-# 2. Run all tests
-python -m pytest tests/ -v
-
-# 3. Run linting
-python -m flake8 src/
-
-# 4. Run type checks
-python -m mypy src/
-
-# 5. (Optional) Run a specific test
-python -m pytest tests/test_qubo_builder.py -v
-```
-
----
-
-## ✅ Test Results
-<!-- Paste the actual output of pytest here. -->
-
-```
-paste pytest output here
-```
-
----
-
-## ⚠️ Known Limitations / Follow-up Work
-<!-- Anything that was NOT done in this branch, or known issues that remain. -->
-- Limitation 1
-- Follow-up issue to address in a future branch
-
----
-
-## 📝 Commit Log
-<!-- Paste the output of: git log --oneline main..<branch-name> -->
-
-```
-<hash> feat(qubo): add latency cost diagonal terms
-<hash> test(qubo): add unit tests for Q matrix shape and values
-<hash> docs(branch-summary): add summary for feature/qubo-matrix-builder
-```
-```
-
----
-
-### ✏️ Example: Completed Branch Summary
-
-Here is a filled-out example for reference:
-
-```markdown
-# Branch Summary: feature/qubo-matrix-builder
-
-## 📌 Overview
-This branch implements the core QUBO matrix construction logic. It converts a list of
-Task objects into an upper-triangular Q matrix encoding both latency costs and the
-DRAM capacity constraint penalty term.
-
-**Branch Name:** `feature/qubo-matrix-builder`
-**Author:** Hari
-**Date Started:** 2026-06-07
-**Date Completed:** 2026-06-08
-**Base Branch:** `main`
-
----
-
-## 🎯 Goals
-- Implement `build_qubo_from_tasks()` in `src/rqaoa/qubo_builder.py`
-- Encode latency cost on diagonal terms of Q
-- Encode DRAM capacity constraint as a quadratic penalty on off-diagonal terms
-- Write unit tests verifying matrix shape, symmetry, and diagonal values
-
----
-
-## 📁 Files Changed
-
-| File | Change Type | Description |
-|------|-------------|-------------|
-| `src/rqaoa/qubo_builder.py` | ADDED | Core QUBO builder module |
-| `tests/test_qubo_builder.py` | ADDED | 6 unit tests for matrix construction |
-| `src/rqaoa/__init__.py` | MODIFIED | Exported `build_qubo_from_tasks` |
-
----
-
-## 🔧 What Was Implemented
-
-### 1. Latency Cost Term (Diagonal)
-Each diagonal element `Q[i][i]` is set to `λ_i × (CXL_LATENCY_NS - DRAM_LATENCY_NS) × m_i`.
-This means tasks with high memory sensitivity get a large positive cost if assigned to CXL,
-pushing the optimizer to assign them to DRAM.
-
-### 2. Capacity Constraint Penalty (Off-Diagonal)
-Expanded the quadratic penalty `P × (Σ(1-x_i)×m_i - C_DRAM)²` to generate cross terms.
-These off-diagonal terms encode the constraint that the sum of DRAM-assigned task sizes
-must not exceed 4096 MB.
-
----
-
-## 🧪 How to Verify
-
-```bash
-source .venv/bin/activate
-python -m pytest tests/test_qubo_builder.py -v
-```
-
----
-
-## ✅ Test Results
-
-```
-PASSED tests/test_qubo_builder.py::test_matrix_shape
-PASSED tests/test_qubo_builder.py::test_diagonal_values
-PASSED tests/test_qubo_builder.py::test_off_diagonal_symmetry
-6 passed in 0.42s
-```
-
----
-
-## ⚠️ Known Limitations
-- Currently only supports 2 memory tiers (DRAM and CXL). Multi-tier support planned.
-- Penalty weight `P` is hardcoded; should be tunable via config in future.
-
----
-
-## 📝 Commit Log
-
-```
-a1b2c3d feat(qubo): add diagonal latency cost terms
-e4f5g6h feat(qubo): add off-diagonal capacity penalty terms
-i7j8k9l test(qubo): add 6 unit tests for Q matrix construction
-m0n1o2p docs(branch-summary): add summary for feature/qubo-matrix-builder
-```
+## 📝 Recent Activity Log
+- **YYYY-MM-DD**: Brief description of what was completed.
 ```
