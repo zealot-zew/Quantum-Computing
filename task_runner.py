@@ -27,9 +27,15 @@ def parse_arguments() -> argparse.Namespace:
         required=True,
         help="Unique identifier for the task"
     )
+    def positive_float(value: str) -> float:
+        v = float(value)
+        if v <= 0:
+            raise argparse.ArgumentTypeError("--memory-mb must be > 0")
+        return v
+
     parser.add_argument(
         "--memory-mb",
-        type=float,
+        type=positive_float,
         required=True,
         help="Memory allocation requirement in Megabytes (MB)"
     )
