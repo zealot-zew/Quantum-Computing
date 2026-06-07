@@ -7,9 +7,10 @@ Most sensitive tasks get DRAM first.
 
 from typing import Dict, List
 from src.scheduler.task_model import Task
+from src.scheduler.scheduler_interface import BaseScheduler
 
 
-class GreedyScheduler:
+class GreedyScheduler(BaseScheduler):
     """
     Greedy scheduler based on memory sensitivity.
     

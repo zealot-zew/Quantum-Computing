@@ -7,9 +7,10 @@ Fills DRAM first until capacity is exceeded, then assigns remaining tasks to CXL
 
 from typing import Dict, List
 from src.scheduler.task_model import Task
+from src.scheduler.scheduler_interface import BaseScheduler
 
 
-class FCFSScheduler:
+class FCFSScheduler(BaseScheduler):
     """
     First-Come-First-Served scheduler.
     

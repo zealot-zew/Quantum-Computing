@@ -6,9 +6,10 @@ Alternates task assignment between DRAM and CXL memory tiers.
 
 from typing import Dict, List
 from src.scheduler.task_model import Task
+from src.scheduler.scheduler_interface import BaseScheduler
 
 
-class RoundRobinScheduler:
+class RoundRobinScheduler(BaseScheduler):
     """
     Round Robin scheduler.
     
