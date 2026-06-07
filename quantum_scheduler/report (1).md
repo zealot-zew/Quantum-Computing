@@ -3,8 +3,7 @@
 **Report Version:** 0.2 (Day 2 Draft)
 **Authors:** Anjana, Hari, Smarth, Vikas, Devandra
 **Institution:** BMS College of Engineering
-**Department:** Information Science and Engineering
-**Date:** 2025
+
 
 ---
 
