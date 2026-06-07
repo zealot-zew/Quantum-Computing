@@ -58,9 +58,7 @@ from typing import List
 # =============================================================================
 
 
-# Latency constants (nanoseconds). Must stay in sync with tasks.py.
-DRAM_LATENCY_NS: float = 100.0   # Local DRAM baseline latency
-CXL_LATENCY_NS: float = 300.0    # CXL-attached memory latency
+# Latency constants (nanoseconds). Imported from src.scheduler.tasks to keep values consistent across the codebase.
 
 
 def calculate_avg_completion_time(durations_s: List[float]) -> float:
