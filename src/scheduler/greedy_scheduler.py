@@ -50,12 +50,40 @@ class GreedyScheduler:
         Raises:
             ValueError: If total memory requirement exceeds total available capacity
         """
-        # TODO: Implement Greedy scheduling logic
-        # 1. Sort tasks by memory_sensitivity descending
-        # 2. Assign high-sensitivity tasks to DRAM until capacity exceeded
-        # 3. Assign remaining to CXL
-        # 4. Return assignment dictionary
-        pass
+        # Check total capacity
+        total_memory = sum(task.memory_requirement_mb for task in tasks)
+        total_capacity = self.dram_capacity_mb + self.cxl_capacity_mb
+        
+        if total_memory > total_capacity:
+            raise ValueError(
+                f"Total memory requirement ({total_memory:.1f} MB) exceeds "
+                f"total available capacity ({total_capacity:.1f} MB)"
+            )
+        
+        # Sort tasks by memory_sensitivity descending (most sensitive first)
+        sorted_tasks = sorted(tasks, key=lambda t: t.memory_sensitivity, reverse=True)
+        
+        assignment = {}
+        dram_used = 0.0
+        cxl_used = 0.0
+        
+        for task in sorted_tasks:
+            # Try to assign high-sensitivity tasks to DRAM first
+            if dram_used + task.memory_requirement_mb <= self.dram_capacity_mb:
+                assignment[task.task_id] = "DRAM"
+                dram_used += task.memory_requirement_mb
+            # Otherwise assign to CXL
+            elif cxl_used + task.memory_requirement_mb <= self.cxl_capacity_mb:
+                assignment[task.task_id] = "CXL"
+                cxl_used += task.memory_requirement_mb
+            else:
+                raise ValueError(
+                    f"Cannot fit task {task.task_id} (requires {task.memory_requirement_mb:.1f} MB) "
+                    f"into remaining capacity (DRAM: {self.dram_capacity_mb - dram_used:.1f} MB, "
+                    f"CXL: {self.cxl_capacity_mb - cxl_used:.1f} MB)"
+                )
+        
+        return assignment
     
     def compute_total_cost(self, tasks: List[Task], assignment: Dict[int, str]) -> float:
         """
@@ -68,5 +96,17 @@ class GreedyScheduler:
         Returns:
             Total weighted latency cost
         """
-        # TODO: Implement cost computation
-        pass
+        from src.scheduler.tasks import DRAM_LATENCY_NS, CXL_LATENCY_NS
+        
+        total_cost = 0.0
+        
+        for task in tasks:
+            tier = assignment[task.task_id]
+            
+            if tier == "CXL":
+                # CXL tasks incur latency penalty
+                latency_penalty = CXL_LATENCY_NS - DRAM_LATENCY_NS
+                cost = task.memory_sensitivity * latency_penalty * task.memory_requirement_mb
+                total_cost += cost
+        
+        return total_cost
