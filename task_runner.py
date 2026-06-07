@@ -44,16 +44,29 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 # How many float64 elements we process per loop iteration.
-# 1024 floats × 8 bytes = 8 KB — one or two cache lines. Keeps the loop
-# tight enough to be measurable without being trivially fast.
+# 1024 floats × 8 bytes = 8 KB — keeps the loop tight enough to be measurable.
 CHUNK_SIZE: int = 1024
 
-# Artificial delay injected per chunk for CXL (node=1) tasks.
-# Real CXL adds ~200 ns extra latency per access. At 1024 accesses per chunk
-# that is ~200 µs. We round up to 2 ms for clear measurability in tests.
-# DRAM (node=0) tasks: no sleep — they run at full speed.
-CXL_LATENCY_PENALTY_S: float = 0.002  # 2 ms per chunk
-DRAM_LATENCY_PENALTY_S: float = 0.0   # No penalty for DRAM
+# Physics-based latency ratio: CXL memory is 3× slower than DRAM.
+# Source: DRAM ~100 ns, CXL ~300 ns (see docs/math_foundations.md and
+# src/scheduler/tasks.py — DRAM_LATENCY_NS=100, CXL_LATENCY_NS=300).
+#
+# How the simulation works:
+#   1. We time the actual computation (iterating the array) — call it T_compute.
+#   2. For CXL tasks, we sleep for (MEMORY_LATENCY_RATIO - 1) × T_compute.
+#   3. Total CXL time = T_compute + 2×T_compute = 3×T_compute ← exactly 3×
+#   4. DRAM tasks: no extra sleep → 1× T_compute.
+#
+# This gives the correct ratio for ANY memory size automatically.
+MEMORY_LATENCY_RATIO: float = 3.0  # CXL_LATENCY_NS / DRAM_LATENCY_NS = 300/100
+
+# Minimum compute time we enforce before calculating the CXL sleep.
+# macOS time.sleep() has a timer granularity of ~10 ms — any sleep shorter
+# than this can overshoot unpredictably, distorting the ratio.
+# By ensuring compute_duration >= MIN_COMPUTE_S, the CXL sleep is always
+# >= 2 × 0.05 s = 0.10 s, well above the OS timer granularity.
+# This kicks in via a spin-wait only on small arrays (< ~25 MB).
+MIN_COMPUTE_S: float = 0.05  # 50 ms floor
 
 
 # ---------------------------------------------------------------------------
@@ -145,37 +158,66 @@ def simulate_work(data: np.ndarray, node: int) -> None:
     creating realistic memory pressure — the same pressure a real task
     (e.g. a database buffer scan) would create.
 
-    For CXL (node=1) tasks, a small sleep is injected between chunks to
-    simulate the extra latency of CXL-attached memory versus local DRAM.
-    This is the software-simulation workaround approved in docs/numa_verification.md.
+    Latency simulation strategy (approved in docs/numa_verification.md):
+      - Step 1: Run the actual computation and precisely time it (T_compute).
+      - Step 2: For CXL (node=1): sleep for (MEMORY_LATENCY_RATIO - 1) × T_compute.
+      - Result: CXL total = T_compute + 2×T_compute = 3×T_compute.
+      - DRAM (node=0): no extra sleep → 1×T_compute.
+
+    This guarantees a MEMORY_LATENCY_RATIO (3×) difference regardless of
+    the array size, matching the real CXL/DRAM latency ratio of 300ns/100ns.
 
     Args:
         data: The NumPy array to iterate over.
-        node: NUMA node ID. 0 = DRAM (no penalty), 1 = CXL (with penalty).
+        node: NUMA node ID. 0 = DRAM (no extra sleep), 1 = CXL (3× total).
     """
-    latency_penalty_s: float = (
-        CXL_LATENCY_PENALTY_S if node == 1 else DRAM_LATENCY_PENALTY_S
-    )
     tier_name: str = "CXL" if node == 1 else "DRAM"
 
+    # --- Step 1: Time the actual computation ---
+    # time.perf_counter() is higher resolution than time.time() — better for
+    # short durations like memory iteration loops.
+    compute_start: float = time.perf_counter()
+
     n_chunks: int = 0
-    # Iterate over the array in non-overlapping CHUNK_SIZE slices.
-    # np.sum on each slice forces a real read — the compiler cannot
-    # optimise it away because we use the result (even if we discard it).
     for start in range(0, len(data), CHUNK_SIZE):
-        chunk = data[start : start + CHUNK_SIZE]
-        _ = np.sum(chunk)  # force memory read
-
-        if latency_penalty_s > 0:
-            time.sleep(latency_penalty_s)  # simulate CXL access overhead
-
+        _ = np.sum(data[start : start + CHUNK_SIZE])  # force memory read
         n_chunks += 1
 
+    compute_duration_s: float = time.perf_counter() - compute_start
+
+    # Spin-wait floor: if the array is very small, compute_duration can be
+    # < 10 ms, meaning the CXL sleep would also be < 10 ms. macOS timer
+    # granularity causes time.sleep() to overshoot that range, breaking the
+    # 3× ratio. We keep re-scanning the array until we've spent at least
+    # MIN_COMPUTE_S — this only triggers for arrays smaller than ~25 MB.
+    while compute_duration_s < MIN_COMPUTE_S:
+        for start in range(0, len(data), CHUNK_SIZE):
+            _ = np.sum(data[start : start + CHUNK_SIZE])
+            n_chunks += 1
+        compute_duration_s = time.perf_counter() - compute_start
+
+    # --- Step 2: Inject CXL latency proportional to actual compute time ---
+    # We sleep for (ratio - 1) × T_compute so that:
+    #   total CXL time = T_compute + (ratio-1)×T_compute = ratio × T_compute
+    # This is exact regardless of machine speed or array size.
+    if node == 1:
+        extra_sleep_s: float = compute_duration_s * (MEMORY_LATENCY_RATIO - 1.0)
+        logger.info(
+            "CXL latency injection: compute=%.4f s → sleeping %.4f s "
+            "(target ratio: %.1f×)",
+            compute_duration_s,
+            extra_sleep_s,
+            MEMORY_LATENCY_RATIO,
+        )
+        time.sleep(extra_sleep_s)
+
     logger.info(
-        "Work complete: %d chunks processed on %s node (penalty=%.3f s/chunk)",
+        "Work complete: %d chunks on %s node | compute=%.4f s | "
+        "total simulated=%.4f s",
         n_chunks,
         tier_name,
-        latency_penalty_s,
+        compute_duration_s,
+        compute_duration_s * (MEMORY_LATENCY_RATIO if node == 1 else 1.0),
     )
 
 
