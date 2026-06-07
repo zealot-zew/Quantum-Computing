@@ -1,0 +1,41 @@
+# ============================================================
+# requirements.txt
+# Quantum-Assisted Optimization Engine for CXL-Aware Hybrid Scheduling
+# Generated: Day 2 | Maintained by: P5 (Devandra)
+# ============================================================
+# Install: pip install -r requirements.txt --break-system-packages
+# ============================================================
+
+# ── Quantum SDKs ────────────────────────────────────────────
+qiskit>=1.0.0
+qiskit-aer>=0.14.0
+openqaoa-core>=0.2.0
+openqaoa-qiskit>=0.2.0
+
+# ── QUBO / Optimization ─────────────────────────────────────
+pyqubo>=1.4.0
+
+# ── Scientific Computing ─────────────────────────────────────
+numpy>=1.26.0
+scipy>=1.12.0
+networkx>=3.2.0
+
+# ── Data & I/O ───────────────────────────────────────────────
+pandas>=2.2.0
+
+# ── Plotting & Visualization ─────────────────────────────────
+matplotlib>=3.8.0
+
+# ── System / Process Monitoring ──────────────────────────────
+psutil>=5.9.0
+
+# ── Testing ──────────────────────────────────────────────────
+pytest>=8.0.0
+pytest-cov>=4.1.0
+
+# ── Type Checking & Linting ──────────────────────────────────
+mypy>=1.9.0
+flake8>=7.0.0
+
+# ── Environment / Config ─────────────────────────────────────
+python-dotenv>=1.0.0

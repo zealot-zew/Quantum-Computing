@@ -1,7 +1,7 @@
 # Quantum-Assisted Optimization Engine for CXL-Aware Hybrid Scheduling
 
 **Team:** Anjana, Hari, Smarth, Vikas, Devandra  
-**Date:** [Fill in submission date]  
+
 **Institution:** BMS College of Engineering
 
 ---
