@@ -15,7 +15,7 @@
 | **Hari** (P2) | Infra + Quantum Algo | `task_runner.py`, `src/executor/`, RQAOA config |
 | **Smarth** (P3) | Classical Scheduler + Simulation | `src/scheduler/` (FCFS, RR, Greedy), latency injection |
 | **Vikas** (P4) | Evaluation + Classical Scheduler | `src/evaluation/`, `greedy_priority_scheduler.py`, plots |
-| **Devandra** (P5) | Docs + Integration Lead | `main.py`, `README.md`, `report.md`, daily merges |
+| **Devandra** (P5) | Docs + Integration Lead | `main.py`, `README.md`, daily merges |
 
 ---
 
