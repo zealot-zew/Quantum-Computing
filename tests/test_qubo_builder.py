@@ -98,13 +98,5 @@ class TestOffDiagonalValues:
         expected = CAPACITY_PENALTY_WEIGHT * 2.0 * mem_0 * mem_1
         assert abs(qubo[0][1] - expected) < 1e-9
 
----------- JUPYTER CELL 6 ----------
 
-import subprocess, os
 
-result = subprocess.run(
-    ["python3", "-m", "pytest", "tests/test_qubo_builder.py", "-v"],
-    capture_output=True, text=True, cwd=os.getcwd()
-)
-print(result.stdout)
-print("All tests passed! " if result.returncode == 0 else "ERRORS:\n" + result.stderr)
