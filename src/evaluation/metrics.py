@@ -10,6 +10,8 @@ Maintained by: Vikas (P4 — Simulation & Evaluation Engineer)
 
 from typing import List
 
+from src.scheduler.tasks import CXL_LATENCY_NS, DRAM_LATENCY_NS
+
 
 # =============================================================================
 # CSV SCHEMA DEFINITIONS
