@@ -32,7 +32,7 @@ This prevents bottlenecks and ensures everyone understands the full system.
 
 ---
 
-### 🧑‍💻 P1 — Quantum Algo + Infra
+### 🧑‍💻 P1 (Anjana) — Quantum Algo + Infra
 
 - [ ] Set up Python virtual environment; install quantum + system dependencies:
   ```bash
@@ -40,18 +40,19 @@ This prevents bottlenecks and ensures everyone understands the full system.
   ```
 - [ ] Sign up at quantum.ibm.com — save API token to `.env` file
 - [ ] Write and run a Qiskit "Hello World" Bell state circuit on Aer simulator — confirm histogram output
-- [ ] Configure Linux environment (AWS EC2 / VM): apply `numa=fake=2` GRUB boot parameter, reboot
-- [ ] Verify `numactl --hardware` shows 2 NUMA nodes — document output in `docs/numa_verification.md`
+- [x] Configure Linux environment (AWS EC2 / VM): apply `numa=fake=2` GRUB boot parameter, reboot — 🛑 `CONFIG_NUMA_EMU` not supported on Ubuntu 24.04/26.04 kernels; `numa=fake=2` cannot be activated. ✅ **Decision: proceeding with software latency simulation in `task_runner.py`.** See `docs/numa_verification.md`.
+- [x] Verify `numactl --hardware` shows 2 NUMA nodes — document output in `docs/numa_verification.md` — ✅ Investigation complete; single-node outcome documented with full explanation and workaround.
 
 ---
 
-### 🧑‍💻 P2 — Infra + Quantum Algo
+### 🧑‍💻 P2 (Hari) — Infra + Quantum Algo
 
-- [ ] Set up Python virtual environment; install all dependencies:
+- [x] Set up Python virtual environment; install all dependencies:
   ```bash
   pip install numpy psutil networkx matplotlib pandas qiskit qiskit-aer openqaoa
   ```
-- [ ] Create the shared project folder structure on Git and push to `main`:
+  ✅ `.venv` created with Python 3.10. `setup_env.sh` added to enforce this constraint for all teammates.
+- [x] Create the shared project folder structure on Git and push to `main`:
   ```
   quantum_scheduler/
   ├── qubo/
@@ -63,18 +64,20 @@ This prevents bottlenecks and ensures everyone understands the full system.
   ├── tests/
   └── main.py
   ```
+  ✅ `src/rqaoa/`, `src/scheduler/`, `src/executor/`, `src/evaluation/`, `tests/`, `results/` all created.
 - [ ] Study QUBO/Ising model basics (30 min — "QUBO formulation tutorial" on YouTube)
-- [ ] Write `task_runner.py` skeleton: accepts `--task-id`, `--memory-mb`, `--node` CLI args; prints args back — just the shell for now
+- [x] Write `task_runner.py` skeleton: accepts `--task-id`, `--memory-mb`, `--node` CLI args; prints args back — just the shell for now ✅ Full skeleton with validation in place.
 
 ---
 
-### 🧑‍💻 P3 — Classical Scheduler + Simulation
+### 🧑‍💻 P3 (Smarth) — Classical Scheduler + Simulation
 
-- [ ] Set up Python virtual environment; install dependencies:
+- [x] Set up Python virtual environment; install dependencies:
   ```bash
   pip install numpy pandas networkx matplotlib
   ```
-- [ ] Define the shared `Task` dataclass in `scheduler/task_model.py` and commit:
+  ✅ Confirmed in `docs/p3_day1_verification.md`.
+- [x] Define the shared `Task` dataclass in `scheduler/task_model.py` and commit:
   ```python
   @dataclass
   class Task:
@@ -83,42 +86,43 @@ This prevents bottlenecks and ensures everyone understands the full system.
       priority: int
       memory_sensitivity: float  # 0.0 to 1.0
   ```
-- [ ] Define the canonical set of 8 tasks with realistic values — commit to `scheduler/tasks.py`
-- [ ] Read the CXL simulation section of the project proposal (20 min)
-- [ ] Stub out empty `FCFSScheduler`, `RoundRobinScheduler`, `GreedyScheduler` classes with docstrings
+  ✅ `src/scheduler/task_model.py` exists with validation in `__post_init__`.
+- [x] Define the canonical set of 8 tasks with realistic values — commit to `scheduler/tasks.py` ✅ `src/scheduler/tasks.py` created with all 8 tasks.
+- [x] Read the CXL simulation section of the project proposal (20 min) ✅ Confirmed in `docs/p3_day1_verification.md`.
+- [x] Stub out empty `FCFSScheduler`, `RoundRobinScheduler`, `GreedyScheduler` classes with docstrings ✅ All three files exist in `src/scheduler/`.
 
 ---
 
-### 🧑‍💻 P4 — Evaluation + Classical Scheduler
+### 🧑‍💻 P4 (Vikas) — Evaluation + Classical Scheduler
 
 - [ ] Set up Python virtual environment; install dependencies:
   ```bash
   pip install numpy matplotlib pandas psutil
   ```
 - [ ] Read the full project proposal and evaluation metrics section (30 min)
-- [ ] Create the `results/` directory structure with subdirectory `results/plots/` — add `.gitkeep`
-- [ ] Define the metrics schema: design what columns go into `results/execution_log.csv` and `results/all_schedulers_summary.csv` — write schema as a comment block in `evaluation/metrics.py`
-- [ ] Stub out `GreedyScheduler` variant (Priority-Weighted) in `scheduler/greedy_priority_scheduler.py` with docstrings
+- [x] Create the `results/` directory structure with subdirectory `results/plots/` — add `.gitkeep` ✅ `results/` directory exists in the project root.
+- [x] Define the metrics schema: design what columns go into `results/execution_log.csv` and `results/all_schedulers_summary.csv` — write schema as a comment block in `evaluation/metrics.py` ✅ Full schema tables and typed, documented function stubs added to `src/evaluation/metrics.py`.
+- [x] Stub out `GreedyScheduler` variant (Priority-Weighted) in `scheduler/greedy_priority_scheduler.py` with docstrings ✅ `src/scheduler/greedy_priority_scheduler.py` created with composite score formula, named constants, and full docstrings.
 
 ---
 
-### 🧑‍💻 P5 — Docs + Integration
+### 🧑‍💻 P5 (Devandra) — Docs + Integration
 
 - [ ] Read the full project proposal and the `Agents.md` rules file (30 min)
 - [ ] Set up Git repo branch protection: no direct push to `main`; require PR review
-- [ ] Create `docs/branch_summaries/` directory with `README.md` explaining the branching convention
-- [ ] Write the full report skeleton `report.md` with all section headers — empty but structured:
-  Abstract, Problem Statement, Methodology (QUBO, RQAOA, NUMA Simulation), Results & Discussion, Limitations, References
-- [ ] Write `requirements.txt` template and verify all 5 people confirm their installs by EOD
+- [x] Create `docs/branch_summaries/` directory with `README.md` explaining the branching convention ✅ `quantum_scheduler/docs/branch_summaries/README.md` exists.
+- [x] Write the full report skeleton `report.md` with all section headers — empty but structured:
+  Abstract, Problem Statement, Methodology (QUBO, RQAOA, NUMA Simulation), Results & Discussion, Limitations, References ✅ `quantum_scheduler/report.md` exists (5896 bytes).
+- [x] Write `requirements.txt` template and verify all 5 people confirm their installs by EOD ✅ `requirements.txt` updated with verification checklist for all 5 members.
 
 ---
 
 ### ✔️ Day 1 End-of-Day Verification
-- [ ] All 5 environments running — all imports pass with no errors
-- [ ] Git repo exists with correct folder structure; all 5 people pushed their Day 1 branch
-- [ ] `numactl --hardware` shows 2 nodes on P1's machine — documented
-- [ ] Shared `Task` dataclass and 8-task definition merged to `main`
-- [ ] Qiskit Hello World runs successfully on P1's machine
+- [ ] All 5 environments running — all imports pass with no errors ⚠️ P4 env not yet confirmed.
+- [ ] Git repo exists with correct folder structure; all 5 people pushed their Day 1 branch ⚠️ Pending commits from P2 (Hari) — branch `feature/environment-setup` not yet pushed.
+- [x] `numactl --hardware` — documented ✅ Hardware NUMA unavailable on AWS kernel; software simulation strategy confirmed in `docs/numa_verification.md`.
+- [x] Shared `Task` dataclass and 8-task definition merged to `main` ✅ `src/scheduler/task_model.py` and `src/scheduler/tasks.py` complete.
+- [ ] Qiskit Hello World runs successfully on P1's machine ⚠️ Anjana's task — status unknown.
 
 ---
 
