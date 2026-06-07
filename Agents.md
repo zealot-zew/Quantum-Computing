@@ -1,4 +1,5 @@
 # CLAUDE.md — Project Intelligence File
+
 ## Quantum-Assisted Optimization Engine for CXL-Aware Hybrid Scheduling
 
 > This file instructs the AI assistant on how to write code, explain mathematics,
@@ -15,6 +16,7 @@ These rules apply to **every single change**, no matter how small:
 
 2. **Never commit directly to `main` or `master`.**
    Always create a new feature branch before making any changes:
+
    ```bash
    git checkout -b feature/<short-description>
    # Examples:
@@ -25,20 +27,24 @@ These rules apply to **every single change**, no matter how small:
 
 3. **Work only on the current branch.**
    Verify you are on the correct branch before writing code:
+
    ```bash
    git branch   # confirm active branch
    ```
 
 4. **Verify before pushing.**
    Before pushing to remote, always run:
+
    ```bash
    python -m pytest tests/          # run all tests
    python -m flake8 src/            # check for linting errors
    python -m mypy src/              # check type hints
    ```
+
    Only push if all checks pass.
 
 5. **Push to the feature branch only.**
+
    ```bash
    git push origin feature/<short-description>
    ```
@@ -48,14 +54,17 @@ These rules apply to **every single change**, no matter how small:
 
 7. **Write clear, conventional commit messages.**
    Follow the Conventional Commits format:
+
    ```
    <type>(<scope>): <short summary>
 
    [optional body]
    ```
+
    Types: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
 
    Examples:
+
    ```
    feat(qubo): add penalty term for DRAM capacity constraint
    fix(executor): handle numactl fallback for non-Linux systems
@@ -70,6 +79,7 @@ These rules apply to **every single change**, no matter how small:
 ## 🧼 Clean Code Standards
 
 ### Core Philosophy
+
 > "Code is read far more often than it is written." — Guido van Rossum
 
 Every line of code written in this project must be **clear, explicit, and purposeful**.
@@ -95,12 +105,12 @@ def calculate_memory_access_cost(
     return task_count * latency_ns * memory_requirement_mb
 ```
 
-| Context              | Convention         | Example                     |
-|----------------------|--------------------|-----------------------------|
-| Variables/Functions  | `snake_case`       | `qubo_matrix`, `run_rqaoa`  |
-| Classes              | `PascalCase`       | `QuantumScheduler`          |
-| Constants            | `SCREAMING_SNAKE`  | `DRAM_LATENCY_NS = 100`     |
-| Private methods      | `_leading_underscore` | `_build_hamiltonian()`   |
+| Context             | Convention            | Example                    |
+| ------------------- | --------------------- | -------------------------- |
+| Variables/Functions | `snake_case`          | `qubo_matrix`, `run_rqaoa` |
+| Classes             | `PascalCase`          | `QuantumScheduler`         |
+| Constants           | `SCREAMING_SNAKE`     | `DRAM_LATENCY_NS = 100`    |
+| Private methods     | `_leading_underscore` | `_build_hamiltonian()`     |
 
 ---
 
@@ -194,7 +204,7 @@ if latency > LATENCY_TIER_THRESHOLD_NS:
 
 ### 5. Comments Explain WHY, Not WHAT
 
-The code explains *what* it does. Comments explain *why* you made a choice.
+The code explains _what_ it does. Comments explain _why_ you made a choice.
 
 ```python
 # ❌ BAD comment — just restating the code
@@ -286,18 +296,20 @@ It is the mathematical language that quantum hardware "speaks," and all quantum
 optimization problems are ultimately expressed in this form.
 
 #### Variables
+
 A system of $N$ discrete **spin variables**:
 $$s_i \in \{+1, -1\} \quad \text{for } i = 1, 2, \ldots, N$$
 
 Think of $s_i = +1$ as spin-up and $s_i = -1$ as spin-down.
 
 #### The Energy Function (Hamiltonian)
+
 The total energy of a spin configuration is:
 $$E(\mathbf{s}) = \sum_{i=1}^{N} h_i s_i + \sum_{i < j}^{N} J_{ij} \, s_i s_j$$
 
-| Term | Symbol | Meaning |
-|------|--------|---------|
-| Linear bias | $h_i$ | External magnetic field on spin $i$ (independent influence on each task) |
+| Term              | Symbol   | Meaning                                                                           |
+| ----------------- | -------- | --------------------------------------------------------------------------------- |
+| Linear bias       | $h_i$    | External magnetic field on spin $i$ (independent influence on each task)          |
 | Quadratic coupler | $J_{ij}$ | Coupling strength between spins $i$ and $j$ (how much tasks influence each other) |
 
 **Goal:** Find the spin configuration $\mathbf{s}^*$ that **minimizes** $E(\mathbf{s})$.
@@ -311,14 +323,17 @@ QUBO (Quadratic Unconstrained Binary Optimization) is the same problem as the Is
 model, but rewritten using binary variables instead of spin variables.
 
 #### Variables
+
 Instead of $s_i \in \{+1, -1\}$, QUBO uses:
 $$x_i \in \{0, 1\} \quad \text{for } i = 1, 2, \ldots, N$$
 
 In this project:
+
 - $x_i = 0$ means **Task $i$ is assigned to DRAM (Node 0)**
 - $x_i = 1$ means **Task $i$ is assigned to CXL memory (Node 1)**
 
 #### The QUBO Objective Function
+
 $$f(\mathbf{x}) = \sum_{i \leq j} Q_{ij} \, x_i x_j = \mathbf{x}^T Q \mathbf{x}$$
 
 - $Q$ is an upper-triangular $N \times N$ matrix.
@@ -328,6 +343,7 @@ $$f(\mathbf{x}) = \sum_{i \leq j} Q_{ij} \, x_i x_j = \mathbf{x}^T Q \mathbf{x}$
 **Goal:** Find the binary vector $\mathbf{x}^* = \arg\min_{\mathbf{x}} f(\mathbf{x})$.
 
 #### The Mapping Between Ising and QUBO
+
 The two models are mathematically equivalent via a linear substitution:
 $$s_i = 2x_i - 1 \quad \iff \quad x_i = \frac{s_i + 1}{2}$$
 
@@ -372,6 +388,7 @@ $$H_B = \sum_{i=1}^{N} X_i$$
 where $X_i$ is the Pauli-X (bit-flip) operator on qubit $i$.
 
 #### The QAOA Circuit
+
 The parameterized quantum state is prepared with $p$ layers:
 $$|\psi(\gamma, \beta)\rangle = \prod_{k=1}^{p} e^{-i\beta_k H_B} \cdot e^{-i\gamma_k H_C} \, |+\rangle^{\otimes N}$$
 
@@ -382,6 +399,7 @@ $$\langle \psi(\gamma, \beta) | H_C | \psi(\gamma, \beta) \rangle$$
 The circuit is then measured to get a bitstring, which corresponds to a QUBO assignment.
 
 #### The Limitation of QAOA (Why We Need RQAOA)
+
 Standard QAOA with a fixed depth $p$ can only "see" correlations between qubits
 within a certain graph distance. For dense, highly interconnected problems (like
 scheduling 8 tasks with many dependencies), it gets stuck in local optima.
@@ -423,6 +441,7 @@ based on the quantum correlations the circuit reveals at each step.
 reconstruct the full $n$-variable solution.
 
 #### Why It Works
+
 Each recursive step "learns" something from the quantum hardware about how variables
 are related. It uses this quantum information to reduce the search space intelligently,
 eventually reaching a problem size small enough for a classical computer to solve
@@ -450,6 +469,7 @@ python -m pytest tests/ -v
 ```
 
 ### `requirements.txt`
+
 ```
 openqaoa
 qiskit
@@ -495,17 +515,21 @@ The `progress_summary.md` file must follow this structure:
 # Project Progress Summary
 
 ## 📌 Active Context
+
 - **Current Branch:** `feature/<branch-name>`
 - **Latest Update:** YYYY-MM-DD
 - **Active Developer/Agent:** <name>
 
 ## 🚀 Active Goals & Roadmap
+
 - [ ] Active Task / Goal 1
 - [x] Completed Task / Goal 2
 
 ## 📁 Files Created or Modified
+
 - `path/to/file.py`: Description of changes
 
 ## 📝 Recent Activity Log
+
 - **YYYY-MM-DD**: Brief description of what was completed.
 ```
