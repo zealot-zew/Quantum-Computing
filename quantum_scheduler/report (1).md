@@ -1,9 +1,10 @@
 # Quantum-Assisted Optimization Engine for CXL-Aware Hybrid Scheduling
 
-**Report Version:** 0.2 (Day 2 Draft)  
-**Authors:** Anjana, Hari, Smarth, Vikas, Devandra  
-**Institution:** BMS College of Engineering  
-
+**Report Version:** 0.2 (Day 2 Draft)
+**Authors:** Anjana, Hari, Smarth, Vikas, Devandra
+**Institution:** BMS College of Engineering
+**Department:** Information Science and Engineering
+**Date:** 2025
 
 ---
 
@@ -14,34 +15,36 @@
 3. [Methodology](#3-methodology)
    - 3.1 [QUBO Formulation](#31-qubo-formulation)
    - 3.2 [RQAOA Algorithm](#32-rqaoa-algorithm)
-   - 3.3 [CXL Memory Simulation](#33-cxl-memory-simulation)
-   - 3.4 [Classical Schedulers](#34-classical-schedulers)
-   - 3.5 [Evaluation Metrics](#35-evaluation-metrics)
-4. [Results and Discussion](#4-results-and-discussion)
-5. [Limitations](#5-limitations)
-6. [References](#6-references)
+   - 3.3 [Execution Layer — Task Orchestrator](#33-execution-layer--task-orchestrator)
+   - 3.4 [NUMA-Based CXL Simulation](#34-numa-based-cxl-simulation)
+   - 3.5 [Classical Schedulers](#35-classical-schedulers)
+   - 3.6 [Evaluation Metrics](#36-evaluation-metrics)
+4. [System Design](#4-system-design)
+5. [Results and Discussion](#5-results-and-discussion)
+6. [Limitations](#6-limitations)
+7. [References](#7-references)
 
 ---
 
 ## 1. Abstract
 
-*[To be written on Day 6 after all results are collected — abstract summarises final findings]*
+*To be written on Day 6 after all experimental results are collected.*
 
 ---
 
 ## 2. Problem Statement
 
-Modern computing systems are undergoing a fundamental architectural shift. The emergence of Compute Express Link (CXL), a high-speed interconnect standard built on the PCIe physical layer, has made it possible to attach large pools of memory to servers without requiring physical DIMM slots on the host board. This disaggregated memory model introduces a new tier in the memory hierarchy — one that sits between traditional local DRAM and remote network-attached storage — and fundamentally changes the assumptions under which classical scheduling algorithms were designed.
+Modern computing systems are undergoing a fundamental architectural shift. The emergence of Compute Express Link (CXL), a high-speed interconnect standard built on the PCIe physical layer, has made it possible to attach large pools of memory to servers without requiring physical DIMM slots on the host board. This disaggregated memory model introduces a new tier in the memory hierarchy and fundamentally changes the assumptions under which classical scheduling algorithms were designed.
 
-Classical CPU scheduling algorithms such as First-Come-First-Served (FCFS) and Round Robin (RR) were developed for relatively homogeneous systems where all memory accesses could be assumed to carry similar latency penalties. FCFS assigns the CPU to processes in the strict order of their arrival, which is simple and fair in the absence of memory heterogeneity but introduces the well-known convoy effect: short-duration, memory-sensitive tasks are forced to queue behind long-running, memory-intensive processes that occupy DRAM, even when the short tasks would benefit far more from DRAM placement. Round Robin improves CPU fairness through time-sliced preemption, but does so without any awareness of where a task's memory is actually located. Neither algorithm accounts for the fact that two tasks executing simultaneously may experience radically different effective memory latencies depending on whether their working sets are placed in local DRAM or in CXL-attached memory.
+Classical CPU scheduling algorithms such as First-Come-First-Served (FCFS) and Round Robin (RR) were developed for relatively homogeneous systems where all memory accesses could be assumed to carry similar latency penalties. FCFS assigns the CPU to processes in strict arrival order, which introduces the well-known convoy effect: short-duration, memory-sensitive tasks are forced to queue behind long-running processes that occupy DRAM, even when the short tasks would benefit far more from DRAM placement. Round Robin improves CPU fairness through time-sliced preemption, but does so without any awareness of where a task's memory is actually located.
 
-The latency gap between these two tiers is not marginal. Local DRAM on a modern server typically delivers access latencies in the range of 80 to 120 nanoseconds. CXL-attached memory, by contrast, introduces serialisation overhead through the PCIe fabric, resulting in effective access latencies of 200 to 400 nanoseconds or more — a penalty of two to four times relative to DRAM. For workloads that perform frequent random memory accesses, such as in-memory databases, graph processing engines, or real-time analytics pipelines, this latency gap translates directly into degraded throughput and increased tail latency at the application level.
+The latency gap between these two tiers is not marginal. Local DRAM on a modern server typically delivers access latencies in the range of 80 to 120 nanoseconds. CXL-attached memory introduces serialisation overhead through the PCIe fabric, resulting in effective access latencies of 200 to 400 nanoseconds or more — a penalty of two to four times relative to DRAM. For workloads that perform frequent random memory accesses, such as in-memory databases, graph processing engines, or real-time analytics pipelines, this latency gap translates directly into degraded throughput and increased tail latency at the application level.
 
-Even modern operating systems with NUMA-aware scheduling heuristics handle this poorly. Linux's CFS scheduler is designed to minimise task migration costs across CPU sockets within a single server, but it was not conceived with the notion of a memory tier whose latency is determined by a PCIe switch fabric rather than by DRAM bank and channel topology. When CXL memory is presented to the OS as a remote NUMA node, the scheduler may place a latency-critical task on a CXL-mapped memory region simply because the local DRAM node is near capacity, with no mechanism to weigh the sensitivity of the task against the cost of CXL placement.
+Even modern operating systems with NUMA-aware scheduling heuristics handle this poorly. Linux's CFS scheduler was not conceived with the notion of a memory tier whose latency is determined by a PCIe switch fabric. When CXL memory is presented to the OS as a remote NUMA node, the scheduler may place a latency-critical task on a CXL-mapped memory region simply because the local DRAM node is near capacity, with no mechanism to weigh the sensitivity of the task against the cost of CXL placement.
 
-This creates a combinatorial optimisation challenge. For a system with N tasks and two memory tiers, the total number of possible task-to-memory assignments is 2^N. As the number of tasks grows, evaluating all possible assignments becomes computationally intractable for classical heuristic schedulers. A system with 8 tasks has 256 possible assignments; a system with 32 tasks has over 4 billion. No greedy or round-robin heuristic can guarantee globally optimal placement under these conditions, because globally optimal placement requires reasoning simultaneously about all task sensitivities, memory capacity constraints, and inter-task interference — a problem structure that maps naturally to combinatorial optimisation.
+This creates a combinatorial optimisation challenge. For a system with N tasks and two memory tiers, the total number of possible task-to-memory assignments is 2^N. A system with 8 tasks has 256 possible assignments; a system with 32 tasks has over 4 billion. No greedy or round-robin heuristic can guarantee globally optimal placement, because globally optimal placement requires reasoning simultaneously about all task sensitivities, memory capacity constraints, and inter-task interference.
 
-This project addresses the gap by proposing a Quantum-Assisted Optimisation Engine that uses the Recursive Quantum Approximate Optimisation Algorithm (RQAOA) to compute near-optimal task-to-memory-tier assignments. By formulating the scheduling problem as a Quadratic Unconstrained Binary Optimisation (QUBO) problem and solving it using quantum-classical hybrid methods, the engine aims to produce placement decisions that account for task memory sensitivity, DRAM capacity constraints, and CXL latency penalties in a unified optimisation objective — something that classical schedulers with fixed heuristics cannot do in the general case.
+This project proposes a Quantum-Assisted Optimisation Engine that uses the Recursive Quantum Approximate Optimisation Algorithm (RQAOA) to compute near-optimal task-to-memory-tier assignments by formulating the scheduling problem as a QUBO problem and solving it using quantum-classical hybrid methods.
 
 ---
 
@@ -49,106 +52,183 @@ This project addresses the gap by proposing a Quantum-Assisted Optimisation Engi
 
 ### 3.1 QUBO Formulation
 
-The memory placement scheduling problem is modelled as a Quadratic Unconstrained Binary Optimisation (QUBO) problem. QUBO is a class of combinatorial optimisation problems expressible in the form:
+The memory placement scheduling problem is modelled as a Quadratic Unconstrained Binary Optimisation (QUBO) problem expressible in the form:
 
 ```
 minimise:  x^T Q x
 ```
 
-where **x** is a binary vector of decision variables and **Q** is a real-valued square matrix encoding both the objective function and all constraints as penalty terms. The QUBO formulation is the natural input format for quantum annealing hardware and for gate-model quantum algorithms such as QAOA and its recursive variant, RQAOA.
+where **x** is a binary vector of decision variables and **Q** is a real-valued square matrix encoding both the objective function and all constraints as penalty terms.
 
 #### Decision Variables
 
-Each task i in the task set is assigned a binary variable x_i, where:
+Each task i is assigned a binary variable x_i:
 
-- **x_i = 0** indicates that task i is placed in local DRAM (Node 0, low latency)
-- **x_i = 1** indicates that task i is placed in CXL-attached memory (Node 1, higher latency)
-
-For a system with 8 tasks, the decision vector **x** has 8 binary components, yielding a 2^8 = 256-element solution space.
+- **x_i = 0** — task i placed in local DRAM (Node 0, ~100 ns latency)
+- **x_i = 1** — task i placed in CXL-attached memory (Node 1, ~300 ns latency)
 
 #### Objective: Minimise Total Memory Access Cost
 
-The primary objective is to minimise the total weighted memory access cost across all tasks. Tasks placed in CXL incur a latency penalty proportional to their memory sensitivity and memory footprint. The diagonal terms of the QUBO matrix Q encode this objective:
+The diagonal terms of Q encode the per-task latency cost:
 
 ```
 Q[i][i] = sensitivity_i × (CXL_LATENCY - DRAM_LATENCY) × memory_mb_i
 ```
 
-Where:
-- `sensitivity_i` is a normalised score in [0.0, 1.0] representing how much task i's performance degrades under high-latency memory
-- `CXL_LATENCY` is the effective CXL access latency (modelled at 300 ns)
-- `DRAM_LATENCY` is the baseline DRAM access latency (modelled at 100 ns)
-- `memory_mb_i` is the memory footprint of task i in megabytes
-
-A task with high sensitivity and large memory footprint placed on CXL contributes a large positive value to the objective. Since we minimise, the solver is incentivised to place high-sensitivity tasks in DRAM wherever capacity allows.
-
 #### Constraint: DRAM Capacity
 
-Not all tasks can fit in DRAM simultaneously. The total memory assigned to DRAM-placed tasks must not exceed the available DRAM capacity C_DRAM. This constraint is encoded as a quadratic penalty added to the objective:
+Total memory assigned to DRAM must not exceed capacity C_DRAM. Encoded as:
 
 ```
 Penalty = P × (Σ_i (1 - x_i) × memory_mb_i  -  C_DRAM)²
 ```
 
-Where P is a sufficiently large penalty coefficient that discourages DRAM overflow. Expanding this square produces off-diagonal terms Q[i][j] for all pairs of tasks (i ≠ j), which encode the pairwise interaction costs between tasks competing for DRAM space.
-
-#### Combined QUBO Matrix
-
-The full Q matrix is an 8×8 real-valued symmetric matrix. Diagonal entries encode individual task latency costs. Off-diagonal entries encode the capacity constraint coupling between task pairs. The QUBO solver (RQAOA) seeks a binary assignment x* that minimises x^T Q x, subject to no explicit constraints — the constraints are embedded directly into Q as penalty terms.
-
-This QUBO matrix is implemented in `qubo/qubo_builder.py` via the `build_qubo_from_tasks()` function, which accepts the canonical 8-task list and returns an (8, 8) NumPy array. A heatmap visualisation of Q is saved to `results/qubo_heatmap.png` for inspection.
+Expanding this produces off-diagonal terms Q[i][j] encoding pairwise capacity coupling between tasks competing for DRAM. The full Q is an 8×8 symmetric matrix implemented in `qubo/qubo_builder.py`.
 
 ---
 
 ### 3.2 RQAOA Algorithm
 
-*[To be written by P1 on Day 3 — covers RQAOA circuit structure, COBYLA optimiser, recursive cutoff strategy, and output decoding]*
+The Recursive Quantum Approximate Optimisation Algorithm (RQAOA) is used as the optimisation engine.
+
+**Key steps:**
+1. Encode QUBO as a parameterised quantum circuit (QAOA ansatz).
+2. Optimise circuit parameters using COBYLA classical optimiser.
+3. Identify the strongest correlation between variables using expectation values.
+4. Fix that variable and reduce the problem size by one.
+5. Repeat recursively until the problem is small enough for classical exact solving.
+
+**Implementation:** OpenQAOA library with Qiskit Aer backend for local simulation; IBM Quantum for hardware validation.
+
+*Detailed circuit description and recursion depth to be added by P1 (Anjana) on Day 3.*
 
 ---
 
-### 3.3 CXL Memory Simulation
+### 3.3 Execution Layer — Task Orchestrator
 
-*[To be written by P3 on Day 6 — covers NUMA-based tiering, latency injection via time.sleep(), and bandwidth throttling implementation]*
+The execution layer is implemented in `src/executor/task_orchestrator.py` (maintained by P2 — Hari). It receives the scheduler's assignment dict and launches all 8 tasks as concurrent subprocesses using Python's `subprocess.Popen`.
 
----
+**Concurrency model:** All 8 tasks start at roughly the same wall-clock time. Total wall time equals the slowest task's duration, not the sum of all tasks.
 
-### 3.4 Classical Schedulers
+Each task is bound to its assigned NUMA node using `numactl`:
 
-*[To be written by P3 on Day 6 — covers FCFS, Round Robin, Greedy (sensitivity-sorted), and Priority-Weighted Greedy with examples]*
+| Tier | numactl command |
+|------|----------------|
+| DRAM | `numactl --cpunodebind=0 --membind=0` |
+| CXL  | `numactl --cpunodebind=1 --membind=1` |
 
----
+If `numactl` is unavailable, the orchestrator automatically falls back to running without NUMA binding.
 
-### 3.5 Evaluation Metrics
+Each subprocess runs `task_runner.py`, which:
+1. Allocates the requested memory using NumPy (`np.random.rand`)
+2. Simulates memory-bound work by iterating over the array in chunks
+3. Injects CXL latency: `sleep = (3.0 - 1.0) × T_compute` so CXL total = 3× DRAM (matching 300 ns / 100 ns ratio)
+4. Prints CSV result to stdout: `task_id,node,start_time_s,end_time_s,duration_s`
 
-*[To be written by P4 on Day 6 — covers avg latency, makespan, DRAM utilisation, and total weighted cost definitions]*
+**QUBO Format Converter:** `src/rqaoa/qubo_converter.py` translates PyQUBO string keys (`'x[0]'`) to OpenQAOA integer keys (`(0,0)`) required by the quantum circuit runner. Normalises to upper-triangular form and merges duplicate entries.
 
----
-
-## 4. Results and Discussion
-
-*[To be written on Day 6 after all experiments are run — includes comparison tables, plots, and IBM Quantum hardware results]*
-
----
-
-## 5. Limitations
-
-*[To be completed on Day 6 — covers QUBO problem size ceiling, offline scheduling only, approximate CXL modelling, and no global optimality guarantee]*
-
----
-
-## 6. References
-
-*[To be completed on Day 6 — IEEE-style references]*
-
-1. Farhi, E., Goldstone, J., & Gutmann, S. (2014). A quantum approximate optimization algorithm. *arXiv preprint arXiv:1411.4028*.
-2. Bravyi, S., Kliesch, A., Koenig, R., & Tang, E. (2020). Obstacles to variational quantum optimization from symmetry protection. *Physical Review Letters*, 125(26).
-3. Bravyi, S., et al. (2022). Hybrid quantum-classical algorithms and quantum error mitigation. *Journal of the Physical Society of Japan*, 90(3).
-4. OpenQAOA GitHub Repository. https://github.com/entropicalabs/openqaoa
-5. PyQUBO GitHub Repository. https://github.com/recruit-communications/pyqubo
-6. Qiskit GitHub Repository. https://github.com/Qiskit/qiskit
-7. Quantum Job Scheduler Reference. https://github.com/aboev/quantum-job-scheduler
-8. CXL Consortium. (2023). *CXL Specification Revision 3.0*. https://www.computeexpresslink.org
-9. Linux `numactl` documentation. https://linux.die.net/man/8/numactl
+**Typical call chain:**
+```
+scheduler.schedule(tasks)           → assignment dict
+task_orchestrator.run_all_tasks()   → list of result dicts
+evaluation.metrics.*                → computed metrics
+```
 
 ---
 
+### 3.4 NUMA-Based CXL Simulation
+
+Physical CXL hardware is unavailable. CXL-like behaviour is simulated using Linux NUMA:
+
+| Memory Tier | NUMA Node | Simulated Latency |
+|-------------|-----------|-------------------|
+| Local DRAM  | Node 0    | Baseline (~80–120 ns) |
+| CXL Memory  | Node 1    | 3× penalty injected via `time.sleep()` |
+
+**Assumptions:** Memory treated as logically shared. Cache coherence not modelled. Bandwidth throttling approximated by access rate constraints.
+
+*Full simulation parameters to be added by P3 (Smarth) on Day 3.*
+
+---
+
+### 3.5 Classical Schedulers
+
+Four classical schedulers are implemented in `src/scheduler/` as baselines (maintained by P3 — Smarth). All inherit from `BaseScheduler` in `src/scheduler/scheduler_interface.py` (maintained by P5 — Devandra):
+
+- **FCFS:** Assigns in arrival order; fills DRAM first, overflows to CXL.
+- **Round Robin:** Alternates between DRAM and CXL by index parity; falls back if preferred tier is full.
+- **Greedy:** Sorts by `memory_sensitivity` descending; most-sensitive tasks get DRAM first.
+- **Priority-Weighted Greedy:** Sorts by `priority × sensitivity` descending; fills DRAM first.
+
+*Worked examples with the 8-task set to be added by P3 on Day 6.*
+
+---
+
+### 3.6 Evaluation Metrics
+
+*To be written by P4 (Vikas) on Day 6 — defines average latency, makespan, DRAM utilisation rate, and total QUBO weighted cost.*
+
+---
+
+## 4. System Design
+
+### 4.1 Architecture Overview
+
+The system comprises three layers:
+
+1. **Optimization Layer** — RQAOA computes near-optimal task-to-tier assignments via QUBO.
+2. **Scheduling Layer** — Interprets RQAOA bitstring output; implements classical baselines.
+3. **Execution Layer** — Enforces placement via `numactl` and collects timing metrics.
+
+### 4.2 Execution Flow
+
+```
+Input Tasks → QUBO Builder → RQAOA Optimizer → Bitstring Assignment
+     → Scheduler Interpreter → numactl Executor → Metric Collector → Report
+```
+
+### 4.3 Component Table
+
+| Component | Strategy | Technology |
+|-----------|----------|------------|
+| Data Center Model | 8 tasks, 2 memory tiers | Python (NetworkX) |
+| Optimization Engine | RQAOA | OpenQAOA |
+| Local Testing | Classical simulation | Qiskit Aer |
+| Quantum Validation | Small-scale execution | IBM Quantum |
+| Execution Layer | NUMA binding | numactl |
+
+---
+
+## 5. Results and Discussion
+
+*To be written on Day 6 after all experiments are run.*
+
+- *(a) Comparison table of all schedulers across 3 metrics*
+- *(b) Bar charts from `results/plots/`*
+- *(c) IBM Quantum hardware run results and noise comparison*
+- *(d) Discussion of RQAOA scheduling quality vs greedy baselines*
+
+---
+
+## 6. Limitations
+
+- **Problem size:** Limited to 8 tasks due to current quantum hardware qubit constraints.
+- **Offline scheduling only:** No real-time or dynamic rescheduling.
+- **Approximate CXL modelling:** Latency injection is an approximation; physical CXL protocol behaviour is not modelled.
+- **No optimality guarantee:** RQAOA provides near-optimal, not globally optimal, solutions.
+- **Noise:** IBM Quantum hardware results are noisy; error mitigation is not applied.
+
+---
+
+## 7. References
+
+1. Farhi, E., Goldstone, J., & Gutmann, S. (2014). A Quantum Approximate Optimization Algorithm. arXiv:1411.4028.
+2. Bravyi, S., et al. (2020). Obstacles to Variational Quantum Optimization from Symmetry Protection. Physical Review Letters, 125(26).
+3. OpenQAOA GitHub Repository. https://github.com/entropicalabs/openqaoa
+4. PyQUBO GitHub Repository. https://github.com/recruit-communications/pyqubo
+5. Qiskit GitHub Repository. https://github.com/Qiskit/qiskit
+6. Quantum Job Scheduler Reference. https://github.com/aboev/quantum-job-scheduler
+7. CXL Consortium. (2023). CXL Specification Revision 3.0. https://www.computeexpresslink.org
+8. Linux numactl documentation. https://linux.die.net/man/8/numactl
+
+---
