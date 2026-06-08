@@ -134,75 +134,75 @@ This prevents bottlenecks and ensures everyone understands the full system.
 
 ### 🧑‍💻 P1 — Quantum Algo + Infra
 
-- [ ] Implement `qubo/qubo_builder.py` — `build_qubo_from_tasks()`:
+- [x] Implement `qubo/qubo_builder.py` — `build_qubo_from_tasks()`:
   - Diagonal: `Q[i][i] = sensitivity_i × (CXL_LATENCY - DRAM_LATENCY) × memory_mb_i`
   - Off-diagonal: expand DRAM capacity constraint penalty `P × (Σ(1-x_i)×m_i - C_DRAM)²`
-- [ ] Generate and save QUBO heatmap to `results/qubo_heatmap.png`
-- [ ] Implement `executor/numa_executor.py` — `execute_with_numa_binding()`:
+- [x] Generate and save QUBO heatmap to `results/qubo_heatmap.png`
+- [x] Implement `executor/numa_executor.py` — `execute_with_numa_binding()`:
   - DRAM: `numactl --cpunodebind=0 --membind=0 python task_runner.py --task-id {id}`
   - CXL: `numactl --cpunodebind=1 --membind=1 python task_runner.py --task-id {id}`
   - Include `FileNotFoundError` fallback for non-Linux environments
-- [ ] Write unit tests `tests/test_qubo_builder.py` (matrix shape, diagonal values, symmetry)
+- [x] Write unit tests `tests/test_qubo_builder.py` (matrix shape, diagonal values, symmetry)
 
 ---
 
 ### 🧑‍💻 P2 — Infra + Quantum Algo
 
-- [ ] Flesh out `task_runner.py` fully:
+- [x] Flesh out `task_runner.py` fully:
   - Allocate memory: `data = np.random.rand(mb * 1024 * 1024 // 8)`
   - Simulate work: iterate over array in chunks
   - Log: task ID, node, start time, end time, duration to stdout (CSV format)
-- [ ] Implement `executor/task_orchestrator.py` — `run_all_tasks(assignment: dict[int, str])`:
+- [x] Implement `executor/task_orchestrator.py` — `run_all_tasks(assignment: dict[int, str])`:
   - Launch each task in a separate subprocess with correct `numactl` binding
   - Wait for all to finish (`subprocess.Popen` + `.wait()`)
-- [ ] Convert PyQUBO output format — write `rqaoa/qubo_converter.py` that translates `qubo_builder` output into OpenQAOA-compatible QUBO dict format
-- [ ] Write unit tests `tests/test_numa_executor.py` (mock subprocess calls)
+- [x] Convert PyQUBO output format — write `rqaoa/qubo_converter.py` that translates `qubo_builder` output into OpenQAOA-compatible QUBO dict format
+- [x] Write unit tests `tests/test_numa_executor.py` (mock subprocess calls)
 
 ---
 
 ### 🧑‍💻 P3 — Classical Scheduler + Simulation
 
-- [ ] Implement `scheduler/fcfs_scheduler.py` — `FCFSScheduler`:
+- [x] Implement `scheduler/fcfs_scheduler.py` — `FCFSScheduler`:
   - Assign tasks in arrival order; DRAM until capacity exceeded, then CXL
-- [ ] Implement `scheduler/round_robin_scheduler.py` — `RoundRobinScheduler`:
+- [x] Implement `scheduler/round_robin_scheduler.py` — `RoundRobinScheduler`:
   - Alternate assignment between DRAM and CXL
-- [ ] Implement `scheduler/greedy_scheduler.py` — `GreedyScheduler`:
+- [x] Implement `scheduler/greedy_scheduler.py` — `GreedyScheduler`:
   - Sort by `memory_sensitivity` descending; fill DRAM first
-- [ ] Each scheduler outputs `{task_id: "DRAM" | "CXL"}` dict + computes `total_latency_cost`
-- [ ] Add **latency injection** to `task_runner.py` (coordinate with P2):
+- [x] Each scheduler outputs `{task_id: "DRAM" | "CXL"}` dict + computes `total_latency_cost`
+- [x] Add **latency injection** to `task_runner.py` (coordinate with P2):
   - If `--node 1` (CXL): `time.sleep(LATENCY_PENALTY_S)` per N memory accesses
 
 ---
 
 ### 🧑‍💻 P4 — Evaluation + Classical Scheduler
 
-- [ ] Implement `scheduler/greedy_priority_scheduler.py` — `PriorityWeightedGreedyScheduler`:
+- [x] Implement `scheduler/greedy_priority_scheduler.py` — `PriorityWeightedGreedyScheduler`:
   - Sort by `priority × memory_sensitivity` descending; fill DRAM first
-- [ ] Implement `evaluation/metrics.py`:
+- [x] Implement `evaluation/metrics.py`:
   - `compute_avg_latency(results: list[dict]) -> float`
   - `compute_makespan(results: list[dict]) -> float`
   - `compute_dram_utilization(assignment: dict, tasks: list[Task]) -> float`
-- [ ] Write unit tests `tests/test_metrics.py` with known-input assertions
-- [ ] Test `task_runner.py` manually on both Node 0 and Node 1 — confirm timing difference
+- [x] Write unit tests `tests/test_metrics.py` with known-input assertions
+- [x] Test `task_runner.py` manually on both Node 0 and Node 1 — confirm timing difference
 
 ---
 
 ### 🧑‍💻 P5 — Docs + Integration
 
-- [ ] Write the **Problem Statement** section of `report.md` (full text, not bullets — 300+ words)
-- [ ] Write the **Methodology — QUBO Formulation** subsection of `report.md`
-- [ ] Review and merge P1's `qubo_builder.py` and P3's scheduler PRs — check naming conventions vs `Agents.md`
-- [ ] Update `requirements.txt` with all packages used today
-- [ ] Write `scheduler/scheduler_interface.py`: base class `BaseScheduler` with `schedule(tasks) -> dict` abstract method
+- [x] Write the **Problem Statement** section of `report.md` (full text, not bullets — 300+ words)
+- [x] Write the **Methodology — QUBO Formulation** subsection of `report.md`
+- [x] Review and merge P1's `qubo_builder.py` and P3's scheduler PRs — check naming conventions vs `Agents.md`
+- [x] Update `requirements.txt` with all packages used today
+- [x] Write `scheduler/scheduler_interface.py`: base class `BaseScheduler` with `schedule(tasks) -> dict` abstract method
 
 ---
 
 ### ✔️ Day 2 End-of-Day Verification
-- [ ] `build_qubo_from_tasks()` returns an 8×8 matrix — all unit tests pass
-- [ ] All 3 classical schedulers run and produce valid assignments — no DRAM overflow
-- [ ] `task_runner.py` executes on both NUMA nodes and logs timing to stdout
-- [ ] `numa_executor.py` tests pass with mocked subprocess
-- [ ] 2 report sections written and committed
+- [x] `build_qubo_from_tasks()` returns an 8×8 matrix — all unit tests pass
+- [x] All 3 classical schedulers run and produce valid assignments — no DRAM overflow
+- [x] `task_runner.py` executes on both NUMA nodes and logs timing to stdout
+- [x] `numa_executor.py` tests pass with mocked subprocess
+- [x] 2 report sections written and committed
 
 ---
 
@@ -232,9 +232,9 @@ This prevents bottlenecks and ensures everyone understands the full system.
 - [ ] Add **bandwidth throttling** to `task_runner.py`:
   - CXL tasks: write data in chunks with small sleeps between chunks
   - Parameterise via `--bandwidth-limit` CLI arg
-- [ ] Add `--dry-run` flag to `task_orchestrator.py` for testing without actual execution
+- [x] Add `--dry-run` flag to `task_orchestrator.py` for testing without actual execution
 - [ ] Wire the orchestrator to accept a scheduler result dict and run all 8 tasks concurrently
-- [ ] Collect per-task return codes — log any subprocess failures
+- [x] Collect per-task return codes — log any subprocess failures
 
 ---
 

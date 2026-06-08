@@ -2,9 +2,9 @@
 
 ## 📌 Active Context
 
-- **Current Branch:** `feature/environment-setup`
-- **Latest Update:** 2026-06-06
-- **Sprint Day:** 1 (complete) → Day 2 starting
+- **Current Branch:** `feature/p2-day2-executor-qubo-converter`
+- **Latest Update:** 2026-06-08
+- **Sprint Day:** 2 (complete) → Day 3 starting
 - **Active Developer/Agent:** Antigravity
 
 ---
@@ -15,7 +15,7 @@
 - [x] Establish project folder structure (`src/rqaoa/`, `src/scheduler/`, `src/executor/`, `src/evaluation/`, `tests/`, `results/`)
 - [x] Investigate NUMA setup — Hardware NUMA unavailable; software latency simulation confirmed in `task_runner.py`
 - [x] Standardize codebase structure: add per-module READMEs, slim down `Agents.md`, extract math docs
-- [ ] Day 2: Implement all 4 classical scheduler bodies + QUBO builder + executor skeleton
+- [x] Day 2: Implement all 4 classical scheduler bodies + QUBO builder + executor skeleton
 - [ ] Day 3: RQAOA runner + result parser + full execution pipeline
 - [ ] Day 4: Benchmarking, plots, CSV outputs
 - [ ] Day 5: IBM Quantum run + code cleanup / linting pass
@@ -28,13 +28,13 @@
 
 | Module | Status | What Exists | What's Missing |
 |--------|--------|-------------|----------------|
-| `src/scheduler/` | ✅ Day 1 done | `task_model.py` ✅, `tasks.py` ✅, `__init__.py` ✅, 4 scheduler stubs 🔲 | Scheduler bodies (Day 2), `scheduler_interface.py` (Day 2) |
-| `src/rqaoa/` | 🔲 Stub only | `__init__.py` | `qubo_builder.py`, `rqaoa_runner.py`, `rqaoa_config.py`, `result_parser.py`, `qubo_converter.py` |
-| `src/executor/` | 🔲 Stub only | `__init__.py` | `numa_executor.py`, `task_orchestrator.py` |
-| `src/evaluation/` | 🔲 Schemas done | `metrics.py` (schemas + stubs), `graphs.py` (stubs) | All function bodies (Day 3–4) |
-| `tests/` | 🔲 Empty | — | All test files (Day 2+) |
+| `src/scheduler/` | ✅ Day 2 done | `task_model.py` ✅, `tasks.py` ✅, `__init__.py` ✅, 4 scheduler bodies ✅ | Edge cases testing (Day 3) |
+| `src/rqaoa/` | 🚧 In Progress | `qubo_builder.py` ✅, `qubo_converter.py` ✅ | `rqaoa_runner.py`, `rqaoa_config.py`, `result_parser.py` (Day 3) |
+| `src/executor/` | ✅ Day 2 done | `task_orchestrator.py` ✅ | None for Day 2 |
+| `src/evaluation/` | 🚧 In Progress | `metrics.py` (schemas + functions) ✅, `graphs.py` (stubs) | Plot generation bodies (Day 3–4) |
+| `tests/` | 🚧 In Progress | `test_numa_executor.py` ✅, `test_qubo_builder.py` ✅, `test_metrics.py` (added) | `test_schedulers.py`, testing RQAOA parser (Day 3-4) |
 | `main.py` | 🔲 Scaffold | CLI args parse, logs selected scheduler | Full pipeline wiring (Day 5) |
-| `task_runner.py` | 🔲 Scaffold | CLI args parse + logging | Memory allocation, latency injection, CSV output (Day 2–3) |
+| `task_runner.py` | ✅ Day 2 done | Memory allocation, exactly 3x CXL latency injection, CSV output | Bandwidth throttling (Day 3) |
 
 ---
 
