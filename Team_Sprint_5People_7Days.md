@@ -226,10 +226,10 @@ This prevents bottlenecks and ensures everyone understands the full system.
 
 ### 🧑‍💻 P2 — Infra + Quantum Algo
 
-- [ ] Implement `rqaoa/result_parser.py` — `decode_bitstring()`:
+- [x] Implement `rqaoa/result_parser.py` — `decode_bitstring()`:
   - Maps 8-bit string → `{task_id: "DRAM" | "CXL"}` dict
   - Validates that all 8 tasks are assigned
-- [ ] Add **bandwidth throttling** to `task_runner.py`:
+- [x] Add **bandwidth throttling** to `task_runner.py`:
   - CXL tasks: write data in chunks with small sleeps between chunks
   - Parameterise via `--bandwidth-limit` CLI arg
 - [x] Add `--dry-run` flag to `task_orchestrator.py` for testing without actual execution

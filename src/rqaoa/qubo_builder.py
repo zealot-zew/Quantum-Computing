@@ -20,11 +20,13 @@ Expanding the squared term gives:
 """
 
 import os
-import numpy as np
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
 from dataclasses import dataclass
+
+import matplotlib
+import numpy as np
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 # ── Constants ──────────────────────────────────────────────────────────────────

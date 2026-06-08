@@ -10,12 +10,12 @@
 
 | File | Status | Description |
 |------|--------|-------------|
-| `__init__.py` | ✅ Exists (stub) | Empty module marker |
-| `qubo_builder.py` | 🔲 TODO Day 2 | `build_qubo_from_tasks(tasks) -> np.ndarray` — builds 8×8 Q matrix |
+| `__init__.py` | ✅ Exists | Exports public RQAOA helpers |
+| `qubo_builder.py` | ✅ Done Day 2 | `build_qubo_from_tasks(tasks) -> np.ndarray` — builds 8×8 Q matrix |
 | `rqaoa_runner.py` | 🔲 TODO Day 3 | `run_rqaoa_optimizer(qubo_matrix) -> list[int]` — runs RQAOA via OpenQAOA/Aer |
 | `rqaoa_config.py` | 🔲 TODO Day 3 | Named constants: `RQAOA_LAYERS`, `RECURSIVE_CUTOFF`, `OPTIMIZER` |
-| `result_parser.py` | 🔲 TODO Day 3 | `decode_bitstring(bitstring) -> dict[int, str]` — maps 8-bit result to `{task_id: "DRAM"/"CXL"}` |
-| `qubo_converter.py` | 🔲 TODO Day 2 | Translates `qubo_builder` output to OpenQAOA-compatible QUBO dict format |
+| `result_parser.py` | ✅ Done Day 3 | `decode_bitstring(bitstring) -> dict[int, str]` — maps 8-bit result to `{task_id: "DRAM"/"CXL"}` |
+| `qubo_converter.py` | ✅ Done Day 2 | Translates `qubo_builder` output to OpenQAOA-compatible QUBO dict format |
 
 ---
 
