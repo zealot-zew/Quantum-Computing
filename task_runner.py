@@ -25,6 +25,7 @@ import argparse
 import logging
 import sys
 import time
+from typing import Optional
 
 import numpy as np
 
@@ -46,6 +47,12 @@ logger = logging.getLogger(__name__)
 # How many float64 elements we process per loop iteration.
 # 1024 floats × 8 bytes = 8 KB — keeps the loop tight enough to be measurable.
 CHUNK_SIZE: int = 1024
+
+# Size constants for bandwidth throttling.
+BYTES_PER_MIB: int = 1024 * 1024
+THROTTLE_SLEEP_INTERVAL_MB: float = 1.0
+THROTTLE_SLEEP_INTERVAL_BYTES: int = int(THROTTLE_SLEEP_INTERVAL_MB * BYTES_PER_MIB)
+WORKLOAD_WRITE_DELTA: float = 1e-12
 
 # Physics-based latency ratio: CXL memory is 3× slower than DRAM.
 # Source: DRAM ~100 ns, CXL ~300 ns (see docs/math_foundations.md and
@@ -92,10 +99,10 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     def _positive_float(value: str) -> float:
-        """Validator: ensures memory-mb is a positive number."""
+        """Validator: ensures positive floating-point CLI values."""
         v = float(value)
         if v <= 0:
-            raise argparse.ArgumentTypeError("--memory-mb must be > 0")
+            raise argparse.ArgumentTypeError("value must be > 0")
         return v
 
     parser.add_argument(
@@ -111,6 +118,17 @@ def parse_arguments() -> argparse.Namespace:
         choices=[0, 1],
         required=True,
         help="Target NUMA node: 0 = DRAM (fast), 1 = CXL (slow).",
+    )
+
+    parser.add_argument(
+        "--bandwidth-limit",
+        dest="bandwidth_limit_mb_s",
+        type=_positive_float,
+        default=None,
+        help=(
+            "Optional CXL bandwidth cap in MiB/s. When set for node=1, "
+            "task_runner writes chunks with sleeps between chunks."
+        ),
     )
 
     return parser.parse_args()
@@ -150,7 +168,36 @@ def allocate_memory(memory_mb: float) -> np.ndarray:
     return np.random.rand(n_elements)
 
 
-def simulate_work(data: np.ndarray, node: int) -> None:
+def _calculate_bandwidth_sleep_s(
+    bytes_processed: int,
+    bandwidth_limit_mb_s: float,
+) -> float:
+    """
+    Calculate how long to sleep to enforce a bandwidth cap.
+
+    Args:
+        bytes_processed: Number of bytes written since the previous throttle.
+        bandwidth_limit_mb_s: Desired maximum bandwidth in MiB/s.
+
+    Returns:
+        Sleep duration in seconds.
+
+    Raises:
+        ValueError: If bytes_processed is negative or the limit is not positive.
+    """
+    if bytes_processed < 0:
+        raise ValueError("bytes_processed must be non-negative.")
+    if bandwidth_limit_mb_s <= 0:
+        raise ValueError("bandwidth_limit_mb_s must be positive.")
+
+    return bytes_processed / (bandwidth_limit_mb_s * BYTES_PER_MIB)
+
+
+def simulate_work(
+    data: np.ndarray,
+    node: int,
+    bandwidth_limit_mb_s: Optional[float] = None,
+) -> None:
     """
     Simulate a memory-bound workload by reading the array in chunks.
 
@@ -167,11 +214,20 @@ def simulate_work(data: np.ndarray, node: int) -> None:
     This guarantees a MEMORY_LATENCY_RATIO (3×) difference regardless of
     the array size, matching the real CXL/DRAM latency ratio of 300ns/100ns.
 
+    Optional bandwidth throttling:
+      - Only applies to CXL tasks (node=1).
+      - Writes each chunk back to memory, then sleeps after roughly 1 MiB of
+        writes to cap effective bandwidth at --bandwidth-limit.
+      - The final CXL latency sleep is based on compute time only, so bandwidth
+        sleeps are not multiplied by the latency ratio.
+
     Args:
         data: The NumPy array to iterate over.
         node: NUMA node ID. 0 = DRAM (no extra sleep), 1 = CXL (3× total).
+        bandwidth_limit_mb_s: Optional bandwidth cap in MiB/s for CXL tasks.
     """
     tier_name: str = "CXL" if node == 1 else "DRAM"
+    should_throttle_bandwidth: bool = node == 1 and bandwidth_limit_mb_s is not None
 
     # --- Step 1: Time the actual computation ---
     # time.perf_counter() is higher resolution than time.time() — better for
@@ -179,11 +235,41 @@ def simulate_work(data: np.ndarray, node: int) -> None:
     compute_start: float = time.perf_counter()
 
     n_chunks: int = 0
+    pending_throttle_bytes: int = 0
+    total_bandwidth_sleep_s: float = 0.0
     for start in range(0, len(data), CHUNK_SIZE):
-        _ = np.sum(data[start : start + CHUNK_SIZE])  # force memory read
+        end: int = min(start + CHUNK_SIZE, len(data))
+        chunk = data[start:end]
+        _ = np.sum(chunk)  # force memory read
+        data[start:end] = chunk + WORKLOAD_WRITE_DELTA  # force memory write
         n_chunks += 1
 
-    compute_duration_s: float = time.perf_counter() - compute_start
+        if should_throttle_bandwidth:
+            pending_throttle_bytes += (end - start) * data.itemsize
+            is_last_chunk: bool = end == len(data)
+            if (
+                pending_throttle_bytes >= THROTTLE_SLEEP_INTERVAL_BYTES
+                or is_last_chunk
+            ):
+                assert bandwidth_limit_mb_s is not None
+                sleep_s: float = _calculate_bandwidth_sleep_s(
+                    pending_throttle_bytes,
+                    bandwidth_limit_mb_s,
+                )
+                logger.debug(
+                    "CXL bandwidth throttle: wrote %d bytes → sleeping %.6f s "
+                    "(limit=%.2f MiB/s)",
+                    pending_throttle_bytes,
+                    sleep_s,
+                    bandwidth_limit_mb_s,
+                )
+                time.sleep(sleep_s)
+                total_bandwidth_sleep_s += sleep_s
+                pending_throttle_bytes = 0
+
+    compute_duration_s: float = (
+        time.perf_counter() - compute_start - total_bandwidth_sleep_s
+    )
 
     # Spin-wait floor: if the array is very small, compute_duration can be
     # < 10 ms, meaning the CXL sleep would also be < 10 ms. macOS timer
@@ -192,9 +278,11 @@ def simulate_work(data: np.ndarray, node: int) -> None:
     # MIN_COMPUTE_S — this only triggers for arrays smaller than ~25 MB.
     while compute_duration_s < MIN_COMPUTE_S:
         for start in range(0, len(data), CHUNK_SIZE):
-            _ = np.sum(data[start : start + CHUNK_SIZE])
+            _ = np.sum(data[start:start + CHUNK_SIZE])
             n_chunks += 1
-        compute_duration_s = time.perf_counter() - compute_start
+        compute_duration_s = (
+            time.perf_counter() - compute_start - total_bandwidth_sleep_s
+        )
 
     # --- Step 2: Inject CXL latency proportional to actual compute time ---
     # We sleep for (ratio - 1) × T_compute so that:
@@ -213,11 +301,15 @@ def simulate_work(data: np.ndarray, node: int) -> None:
 
     logger.info(
         "Work complete: %d chunks on %s node | compute=%.4f s | "
-        "total simulated=%.4f s",
+        "bandwidth_sleep=%.4f s | total simulated=%.4f s",
         n_chunks,
         tier_name,
         compute_duration_s,
-        compute_duration_s * (MEMORY_LATENCY_RATIO if node == 1 else 1.0),
+        total_bandwidth_sleep_s,
+        (
+            compute_duration_s * (MEMORY_LATENCY_RATIO if node == 1 else 1.0)
+            + total_bandwidth_sleep_s
+        ),
     )
 
 
@@ -289,7 +381,7 @@ def main() -> None:
 
     # --- Step 2: Record start time and run work ---
     start_time_s: float = time.time()
-    simulate_work(data, args.node)
+    simulate_work(data, args.node, args.bandwidth_limit_mb_s)
     end_time_s: float = time.time()
 
     # --- Step 3: Emit CSV result to stdout ---

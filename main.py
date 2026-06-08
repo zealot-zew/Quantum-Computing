@@ -12,10 +12,6 @@ Usage:
     python main.py --scheduler rqaoa
     python main.py --scheduler all   # Run all schedulers sequentially
 
-Status:
-    Scaffold only — CLI args work. Full pipeline wired on Day 5 by Devandra (P5).
-
-Maintained by: Devandra (P5 — Documentation & Integration Lead)
 """
 
 import argparse
