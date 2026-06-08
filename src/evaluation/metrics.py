@@ -163,3 +163,32 @@ def calculate_dram_utilization(
     if dram_capacity_mb <= 0:
         raise ValueError("dram_capacity_mb must be positive.")
     return (dram_usage_mb / dram_capacity_mb) * 100.0
+
+def compute_total_latency_cost(
+    assignment,
+    tasks,
+) -> float:
+    """
+    Compute total weighted latency cost for an assignment.
+
+    Args:
+        assignment: task_id -> "DRAM" or "CXL"
+        tasks: List of Task objects
+
+    Returns:
+        Total latency cost
+    """
+    total_cost = 0.0
+
+    task_map = {task.task_id: task for task in tasks}
+
+    for task_id, tier in assignment.items():
+        task = task_map[task_id]
+
+        total_cost += calculate_latency_cost(
+            memory_requirement_mb=task.memory_requirement_mb,
+            memory_sensitivity=task.memory_sensitivity,
+            assigned_tier=tier,
+        )
+
+    return total_cost
