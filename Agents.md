@@ -68,7 +68,7 @@ quantum-cxl-scheduler/
 
 ## 🌿 Git Rules (MANDATORY)
 
-1. **Never commit or push without explicit user permission.**
+1. **Batch your commits logically.** You do not need to commit every single edit or ask for explicit user permission before committing. Wait until a logical chunk of work is complete, then commit.
 2. **Never commit to `main` or `master`.** Always use a feature branch:
    ```bash
    git checkout -b feature/<short-description>
