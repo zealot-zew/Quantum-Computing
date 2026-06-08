@@ -10,16 +10,8 @@ must inherit from BaseScheduler and implement the `schedule` method.
 
 from abc import ABC, abstractmethod
 from typing import Dict, List
-from dataclasses import dataclass
 
-
-@dataclass
-class Task:
-    """Canonical task representation used across all scheduler modules."""
-    task_id: int
-    memory_requirement_mb: float
-    priority: int
-    memory_sensitivity: float  # 0.0 to 1.0
+from src.scheduler.task_model import Task
 
 
 class BaseScheduler(ABC):

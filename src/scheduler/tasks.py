@@ -73,7 +73,7 @@ CXL_LATENCY_NS = 300.0     # ~200-400+ ns typical
 def get_canonical_tasks():
     """
     Returns the canonical set of 8 tasks.
-    
+
     Returns:
         List of Task objects
     """
@@ -83,7 +83,7 @@ def get_canonical_tasks():
 def get_total_memory_requirement():
     """
     Calculate total memory requirement across all tasks.
-    
+
     Returns:
         Total memory in MB
     """

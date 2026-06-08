@@ -11,7 +11,7 @@ from dataclasses import dataclass
 class Task:
     """
     Represents a computational task with memory requirements.
-    
+
     Attributes:
         task_id: Unique identifier for the task
         memory_requirement_mb: Memory required by the task in megabytes
@@ -24,12 +24,18 @@ class Task:
     memory_requirement_mb: float
     priority: int
     memory_sensitivity: float  # 0.0 to 1.0
-    
-    def __post_init__(self):
+
+    def __post_init__(self) -> None:
         """Validate task attributes."""
         if self.memory_requirement_mb <= 0:
-            raise ValueError(f"memory_requirement_mb must be positive, got {self.memory_requirement_mb}")
+            raise ValueError(
+                "memory_requirement_mb must be positive, "
+                f"got {self.memory_requirement_mb}"
+            )
         if not 0.0 <= self.memory_sensitivity <= 1.0:
-            raise ValueError(f"memory_sensitivity must be between 0.0 and 1.0, got {self.memory_sensitivity}")
+            raise ValueError(
+                "memory_sensitivity must be between 0.0 and 1.0, "
+                f"got {self.memory_sensitivity}"
+            )
         if self.priority < 0:
             raise ValueError(f"priority must be non-negative, got {self.priority}")

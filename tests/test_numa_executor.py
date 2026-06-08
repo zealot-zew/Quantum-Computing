@@ -18,10 +18,8 @@ Run with:
 Maintained by: Hari (P2 — Infra + Quantum Algo)
 """
 
-import sys
-from io import StringIO
 from typing import Dict, List
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -122,6 +120,15 @@ class TestBuildCommand:
         # Join to a string for easy substring check
         cmd_str = " ".join(cmd)
         assert "task_runner.py" in cmd_str
+
+    def test_bandwidth_limit_added_only_for_cxl(self) -> None:
+        """Only CXL commands should receive task_runner.py bandwidth caps."""
+        dram_cmd = _build_command(SAMPLE_TASKS[0], node=0, bandwidth_limit_mb_s=64.0)
+        cxl_cmd = _build_command(SAMPLE_TASKS[1], node=1, bandwidth_limit_mb_s=64.0)
+
+        assert "--bandwidth-limit" not in dram_cmd
+        assert "--bandwidth-limit" in cxl_cmd
+        assert "64.0" in cxl_cmd
 
     def test_tier_to_node_mapping(self) -> None:
         """TIER_TO_NODE must correctly map string tiers to node integers."""
@@ -276,3 +283,8 @@ class TestRunAllTasks:
         bad_assignment = {99: "DRAM"}  # task_id=99 doesn't exist in SAMPLE_TASKS
         with pytest.raises(ValueError, match="task_id=99"):
             run_all_tasks(bad_assignment, SAMPLE_TASKS)
+
+    def test_raises_on_invalid_bandwidth_limit(self) -> None:
+        """Bandwidth caps must be positive when supplied."""
+        with pytest.raises(ValueError, match="bandwidth_limit_mb_s"):
+            run_all_tasks(SAMPLE_ASSIGNMENT, SAMPLE_TASKS, bandwidth_limit_mb_s=0.0)
