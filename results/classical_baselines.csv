@@ -1,0 +1,5 @@
+scheduler,total_latency_cost,dram_tasks,cxl_tasks,dram_used_mb,cxl_used_mb,dram_utilization_pct
+FCFS,290560.0,4,4,1920.0,1984.0,93.75
+RoundRobin,336640.0,2,6,1536.0,2368.0,75.0
+Greedy,252160.0,4,4,2048.0,1856.0,100.0
+PriorityWeighted,553600.0,4,4,2048.0,1856.0,100.0
