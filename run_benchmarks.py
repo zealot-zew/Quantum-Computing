@@ -323,7 +323,7 @@ def _print_comparison_table(summaries: List[Dict]) -> None:
 
 def run_benchmarks(
     dry_run: bool = False,
-    scale_factor: float = 0.1,
+    scale_factor: float = 1.0,
     schedulers: List[str] = None,
 ) -> List[Dict]:
     """Run all schedulers through the full pipeline and save results.
@@ -469,10 +469,10 @@ def main() -> None:
     parser.add_argument(
         "--scale-factor",
         type=float,
-        default=0.1,
+        default=1.0,
         help=(
-            "Scale factor for task memory sizes (default: 0.1 = 10%%). "
-            "Use 1.0 for full-size simulation."
+            "Scale factor for task memory sizes (default: 1.0 = 100%%). "
+            "Use 0.1 for quick dev simulation."
         ),
     )
     parser.add_argument(
