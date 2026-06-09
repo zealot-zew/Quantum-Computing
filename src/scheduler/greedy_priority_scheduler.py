@@ -13,7 +13,6 @@ Maintained by: Vikas (P4 — Simulation & Evaluation Engineer)
 
 from typing import Dict, List
 
-from src.evaluation.metrics import calculate_latency_cost
 from src.scheduler.task_model import Task
 
 
@@ -159,6 +158,9 @@ class GreedyPriorityScheduler:
         Returns:
             Total weighted latency cost in nanosecond-megabyte units (ns·MB).
         """
+        # Import here to avoid circular import with src.evaluation.metrics
+        from src.evaluation.metrics import calculate_latency_cost
+        
         total_cost = 0.0
         for task in tasks:
             total_cost += calculate_latency_cost(
