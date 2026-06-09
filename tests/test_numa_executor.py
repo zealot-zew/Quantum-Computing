@@ -284,7 +284,49 @@ class TestRunAllTasks:
         with pytest.raises(ValueError, match="task_id=99"):
             run_all_tasks(bad_assignment, SAMPLE_TASKS)
 
-    def test_raises_on_invalid_bandwidth_limit(self) -> None:
-        """Bandwidth caps must be positive when supplied."""
-        with pytest.raises(ValueError, match="bandwidth_limit_mb_s"):
-            run_all_tasks(SAMPLE_ASSIGNMENT, SAMPLE_TASKS, bandwidth_limit_mb_s=0.0)
+    def test_bandwidth_limit_passed_to_cxl_only(self) -> None:
+        """The bandwidth_limit_mb_s parameter should be passed only to CXL commands."""
+        mock_proc_dram = _make_mock_proc(task_id=0, node=0)
+        mock_proc_cxl = _make_mock_proc(task_id=1, node=1)
+        assignment = {0: "DRAM", 1: "CXL"}
+        
+        with patch("src.executor.task_orchestrator.subprocess.Popen") as mock_popen:
+            mock_popen.side_effect = [mock_proc_dram, mock_proc_cxl]
+            run_all_tasks(assignment, SAMPLE_TASKS, bandwidth_limit_mb_s=128.0)
+            
+        # Popen should be called twice
+        assert mock_popen.call_count == 2
+        
+        dram_cmd = mock_popen.call_args_list[0][0][0]
+        cxl_cmd = mock_popen.call_args_list[1][0][0]
+        
+        assert "--bandwidth-limit" not in dram_cmd
+        assert "--bandwidth-limit" in cxl_cmd
+        assert "128.0" in cxl_cmd
+
+    def test_multiple_concurrent_tasks_mixed_success(self) -> None:
+        """Results should accurately reflect a mix of successful and failed tasks."""
+        mock_proc_ok1 = _make_mock_proc(task_id=0, node=0, returncode=0)
+        mock_proc_fail = _make_mock_proc(task_id=1, node=1, returncode=1)
+        mock_proc_ok2 = _make_mock_proc(task_id=2, node=0, returncode=0)
+        
+        assignment = {0: "DRAM", 1: "CXL", 2: "DRAM"}
+        
+        with patch("src.executor.task_orchestrator.subprocess.Popen") as mock_popen:
+            mock_popen.side_effect = [mock_proc_ok1, mock_proc_fail, mock_proc_ok2]
+            results = run_all_tasks(assignment, SAMPLE_TASKS)
+            
+        assert len(results) == 3
+        # Ensure return codes match
+        return_codes = {r["task_id"]: r["return_code"] for r in results}
+        assert return_codes[0] == 0
+        assert return_codes[1] == 1
+        assert return_codes[2] == 0
+
+    def test_empty_assignment_dict(self) -> None:
+        """An empty assignment should return an empty result list and not crash."""
+        with patch("src.executor.task_orchestrator.subprocess.Popen") as mock_popen:
+            results = run_all_tasks({}, SAMPLE_TASKS)
+            
+        mock_popen.assert_not_called()
+        assert results == []

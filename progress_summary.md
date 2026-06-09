@@ -2,10 +2,10 @@
 
 ## 📌 Active Context
 
-- **Current Branch:** `Day-3-Hari`
-- **Latest Update:** 2026-06-08
-- **Sprint Day:** 3 in progress
-- **Active Developer/Agent:** Codex
+- **Current Branch:** `feature/p2-day4-day5-pipeline`
+- **Latest Update:** 2026-06-10
+- **Sprint Day:** 5 completed
+- **Active Developer/Agent:** Hari (P2) + Antigravity
 
 ---
 
@@ -16,12 +16,9 @@
 - [x] Investigate NUMA setup — Hardware NUMA unavailable; software latency simulation confirmed in `task_runner.py`
 - [x] Standardize codebase structure: add per-module READMEs, slim down `Agents.md`, extract math docs
 - [x] Day 2: Implement all 4 classical scheduler bodies + QUBO builder + executor skeleton
-- [ ] Day 3: RQAOA runner + result parser + full execution pipeline
-  - [x] P2: RQAOA result parser
-  - [x] P2: CXL bandwidth throttling in `task_runner.py`
-  - [ ] P1/P2: RQAOA runner/config + end-to-end pipeline wiring
-- [ ] Day 4: Benchmarking, plots, CSV outputs
-- [ ] Day 5: IBM Quantum run + code cleanup / linting pass
+- [x] Day 3: RQAOA runner + result parser + full execution pipeline
+- [x] Day 4: Benchmarking, plots, CSV outputs
+- [x] Day 5: IBM Quantum run + code cleanup / linting pass
 - [ ] Day 6: Integration, `main.py` fully wired, report finalised
 - [ ] Day 7: Final testing, tag v1.0.0, submit
 
