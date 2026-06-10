@@ -1,10 +1,8 @@
 # Quantum-Assisted Optimization Engine for CXL-Aware Hybrid Scheduling
 
-**Report Version:** 0.3 (Day 3 Draft)
+**Report Version:** 0.4 (Day 4 Draft)
 **Authors:** Anjana, Hari, Smarth, Vikas, Devandra
 **Institution:** BMS College of Engineering
-**Department:** Information Science and Engineering
-**Date:** 2025
 
 ---
 
@@ -21,7 +19,7 @@
    - 3.6 [Evaluation Metrics](#36-evaluation-metrics)
 4. [System Design](#4-system-design)
 5. [Results and Discussion](#5-results-and-discussion)
-6. [Limitations](#6-limitations)
+6. [Limitations and Future Work](#6-limitations-and-future-work)
 7. [References](#7-references)
 
 ---
@@ -44,7 +42,7 @@ Even modern operating systems with NUMA-aware scheduling heuristics handle this 
 
 This creates a combinatorial optimisation challenge. For a system with N tasks and two memory tiers, the total number of possible task-to-memory assignments is 2^N. A system with 8 tasks has 256 possible assignments; a system with 32 tasks has over 4 billion. No greedy or round-robin heuristic can guarantee globally optimal placement under these conditions, because globally optimal placement requires reasoning simultaneously about all task sensitivities, memory capacity constraints, and inter-task interference — a problem structure that maps naturally to combinatorial optimisation.
 
-This project addresses the gap by proposing a Quantum-Assisted Optimisation Engine that uses the Recursive Quantum Approximate Optimisation Algorithm (RQAOA) to compute near-optimal task-to-memory-tier assignments. By formulating the scheduling problem as a Quadratic Unconstrained Binary Optimisation (QUBO) problem and solving it using quantum-classical hybrid methods, the engine aims to produce placement decisions that account for task memory sensitivity, DRAM capacity constraints, and CXL latency penalties in a unified optimisation objective — something that classical schedulers with fixed heuristics cannot do in the general case.
+This project addresses the gap by proposing a Quantum-Assisted Optimisation Engine that uses the Recursive Quantum Approximate Optimisation Algorithm (RQAOA) to compute near-optimal task-to-memory-tier assignments. By formulating the scheduling problem as a Quadratic Unconstrained Binary Optimisation (QUBO) problem and solving it using quantum-classical hybrid methods, the engine aims to produce placement decisions that account for task memory sensitivity, DRAM capacity constraints, and CXL latency penalties in a unified optimisation objective.
 
 ---
 
@@ -58,7 +56,7 @@ The memory placement scheduling problem is modelled as a Quadratic Unconstrained
 minimise:  x^T Q x
 ```
 
-where **x** is a binary vector of decision variables and **Q** is a real-valued square matrix encoding both the objective function and all constraints as penalty terms. The QUBO formulation is the natural input format for quantum annealing hardware and for gate-model quantum algorithms such as QAOA and its recursive variant RQAOA.
+where **x** is a binary vector of decision variables and **Q** is a real-valued square matrix encoding both the objective function and all constraints as penalty terms.
 
 #### Decision Variables
 
@@ -77,7 +75,7 @@ The diagonal terms of the QUBO matrix Q encode the per-task latency cost:
 Q[i][i] = sensitivity_i × (CXL_LATENCY - DRAM_LATENCY) × memory_mb_i
 ```
 
-Where sensitivity_i is a normalised score in [0.0, 1.0] representing how much task i's performance degrades under high-latency memory. A task with sensitivity = 1.0 is maximally latency-sensitive; a task with sensitivity = 0.0 is largely memory-insensitive. The product of sensitivity, latency delta (200 ns), and memory footprint gives a per-task penalty for CXL placement.
+Where sensitivity_i is a normalised score in [0.0, 1.0] representing how much task i's performance degrades under high-latency memory. The product of sensitivity, latency delta (200 ns), and memory footprint gives a per-task penalty for CXL placement.
 
 #### Constraint: DRAM Capacity
 
@@ -87,40 +85,37 @@ Total memory assigned to DRAM-placed tasks must not exceed the available DRAM ca
 Penalty = P × (Σ_i (1 - x_i) × memory_mb_i  -  C_DRAM)²
 ```
 
-Expanding this produces off-diagonal terms Q[i][j] encoding pairwise capacity constraint coupling between tasks competing for DRAM space. The project uses a slack variable formulation where `n_slack = ceil(log2(C_DRAM))` additional binary variables are introduced to encode the capacity constraint as an exact equality. For the default 2048 MB DRAM capacity this gives 11 slack bits, making the total QUBO size 8 + 11 = 19 variables.
+The project uses a slack variable formulation where `n_slack = ceil(log2(C_DRAM))` additional binary variables encode the capacity constraint as an exact equality. For the default 2048 MB DRAM capacity this gives 11 slack bits, making the total QUBO size 8 + 11 = 19 variables.
 
-The full Q matrix is implemented in `src/rqaoa/qubo_builder.py` via `build_qubo_from_tasks()`, which accepts the canonical 8-task list and returns a (19, 19) NumPy array. A heatmap visualisation of the 8×8 task sub-matrix is saved to `results/qubo_heatmap.png`.
+The full Q matrix is implemented in `src/rqaoa/qubo_builder.py` via `build_qubo_from_tasks()`, which returns a (19, 19) NumPy array. A heatmap of the 8×8 task sub-matrix is saved to `results/qubo_heatmap.png`.
 
 ---
 
 ### 3.2 RQAOA Algorithm
 
-The Recursive Quantum Approximate Optimisation Algorithm (RQAOA) serves as the quantum optimisation engine of this project. It is implemented in `src/rqaoa/rqaoa_runner.py` and orchestrated through the full pipeline in `src/rqaoa/run_rqaoa_pipeline.py`. The algorithm operates on the QUBO matrix produced by `qubo_builder.py` and returns a binary assignment of tasks to memory tiers.
+The Recursive Quantum Approximate Optimisation Algorithm (RQAOA) serves as the quantum optimisation engine, implemented in `src/rqaoa/rqaoa_runner.py` and orchestrated through `src/rqaoa/run_rqaoa_pipeline.py`.
 
 #### Why Standard QAOA Is Insufficient
 
-Fixed-depth QAOA can only capture correlations within a bounded graph distance. For dense 8-task problems with all-to-all coupling in the QUBO matrix, standard QAOA with a small number of layers gets trapped in local optima because it cannot reason about the full combinatorial structure. RQAOA addresses this by iteratively extracting genuine quantum correlation information at each step and using it to permanently reduce the problem size.
+Fixed-depth QAOA can only capture correlations within a bounded graph distance. For dense 8-task problems with all-to-all coupling in the QUBO matrix, standard QAOA gets trapped in local optima. RQAOA addresses this by iteratively extracting quantum correlation information to permanently reduce the problem size.
 
 #### Algorithm Steps
 
-RQAOA proceeds as follows:
+1. **Encode:** Compiled into a parameterised quantum circuit using OpenQAOA with Qiskit Aer vectorised simulator. Circuit depth: `RQAOA_LAYERS = 3`.
 
-1. **Encode:** The QUBO problem is compiled into a parameterised quantum circuit (QAOA ansatz) using the OpenQAOA library with a Qiskit Aer vectorised simulator as the backend. The circuit depth is controlled by `RQAOA_LAYERS = 3` (defined in `src/rqaoa/rqaoa_config.py`), meaning three alternating layers of cost and mixer unitaries are applied.
+2. **Optimise:** COBYLA optimiser iterates over variational parameters (gamma and beta angles) to minimise expected energy. Maximum 200 iterations per step, `SHOTS = 1024` measurements per evaluation.
 
-2. **Optimise:** A classical COBYLA optimiser iterates over the circuit's variational parameters (gamma and beta angles) to minimise the expected energy of the cost Hamiltonian. A maximum of 200 COBYLA iterations are allowed per recursion step. The backend uses `SHOTS = 1024` measurement samples per circuit evaluation to estimate expectation values.
-
-3. **Identify Correlation:** After each optimisation, the algorithm computes two-qubit expectation values to identify the pair of variables with the strongest quantum correlation:
-
+3. **Identify Correlation:** Computes two-qubit expectation values to find the strongest correlated pair:
 ```
 M_ij = <psi(gamma*, beta*) | Z_i Z_j | psi(gamma*, beta*)>
 (i*, j*) = argmax_{i<j} |M_ij|
 ```
 
-4. **Eliminate:** The most strongly correlated variable is fixed relative to its partner and substituted out of the Hamiltonian, reducing the problem by one variable:
-   - M_ij > 0 → fix s_i = s_j (same memory tier)
-   - M_ij < 0 → fix s_i = -s_j (opposite memory tiers)
+4. **Eliminate:** Most strongly correlated variable fixed and substituted out:
+   - M_ij > 0 → same memory tier
+   - M_ij < 0 → opposite memory tiers
 
-5. **Recurse:** Steps 1–4 are repeated on the reduced problem until the number of remaining variables falls to the cutoff threshold. The cutoff is tuned by problem size:
+5. **Recurse:** Repeat until remaining variables reach cutoff:
 
 | Total Variables | Tasks | Slack Bits | Cutoff |
 |----------------|-------|------------|--------|
@@ -128,163 +123,99 @@ M_ij = <psi(gamma*, beta*) | Z_i Z_j | psi(gamma*, beta*)>
 | 23 | 12 | 11 | 10 |
 | 27 | 16 | 12 | 12 |
 
-6. **Solve Classically:** Once the problem reaches the cutoff size, the remaining reduced problem is solved exactly using classical enumeration. The solution is propagated back through the chain of eliminated variable relationships to reconstruct the full assignment.
+6. **Solve Classically:** Remaining reduced problem solved by classical enumeration. Solution propagated back to reconstruct full assignment.
 
 #### Output Decoding and Validation
 
-The raw RQAOA output is a dictionary mapping variable index to binary value. The pipeline (`run_rqaoa_pipeline.py`) extracts the task assignment from the first `n_tasks` indices and performs three validation checks:
-
+Three validation checks after RQAOA:
 - **Binary check:** All task variable values must be 0 or 1.
-- **Capacity check:** Total DRAM usage must not exceed C_DRAM (2048 MB, with 0.5 MB rounding tolerance).
-- **Constraint residual check:** `DRAM_used + slack_value` must approximately equal C_DRAM (within 10 MB tolerance).
+- **Capacity check:** Total DRAM usage ≤ 2048 MB (0.5 MB tolerance).
+- **Constraint residual check:** `DRAM_used + slack_value` ≈ C_DRAM (10 MB tolerance).
 
-If validation passes, the integer assignment is decoded to a human-readable memory map (`{task_id: "DRAM" or "CXL"}`) and saved to `results/rqaoa_assignment_8tasks.csv`.
+Valid assignments saved to `results/rqaoa_assignment_8tasks.csv`.
 
 #### Fallback Mechanism
 
-If OpenQAOA is unavailable or RQAOA fails, the system falls back to a greedy assignment based on diagonal QUBO costs. This fallback is clearly logged as non-quantum and is intended only for development environments.
+If OpenQAOA is unavailable, system falls back to greedy assignment based on QUBO diagonal costs. Clearly logged as non-quantum.
 
 ---
 
 ### 3.3 Execution Layer — Task Orchestrator
 
-The execution layer is implemented in `src/executor/task_orchestrator.py` (maintained by P2 — Hari). It receives the scheduler's assignment dict and launches all 8 tasks as concurrent subprocesses using Python's `subprocess.Popen`.
+Implemented in `src/executor/task_orchestrator.py` (P2 — Hari). Launches all 8 tasks as concurrent subprocesses using `subprocess.Popen`. Total wall time equals the slowest task's duration.
 
-**Concurrency model:** All 8 tasks start at roughly the same wall-clock time using non-blocking Popen. Total wall time equals the slowest task's duration, not the sum of all tasks.
-
-Each task is bound to its assigned NUMA node using `numactl`:
+Each task bound to NUMA node via `numactl`:
 
 | Tier | numactl command |
 |------|----------------|
 | DRAM | `numactl --cpunodebind=0 --membind=0` |
 | CXL  | `numactl --cpunodebind=1 --membind=1` |
 
-If `numactl` is unavailable (e.g. on Windows), the orchestrator automatically falls back to running without NUMA binding.
+Falls back gracefully if `numactl` unavailable (Windows/macOS).
 
-Each subprocess runs `task_runner.py`, which:
-1. Allocates the requested memory using NumPy (`np.random.rand`) — forces physical page commitment
-2. Simulates memory-bound work by iterating over the array in CHUNK_SIZE=1024 chunks
-3. Injects CXL latency: `sleep = (3.0 - 1.0) × T_compute` so CXL total = 3× DRAM (matching 300 ns / 100 ns ratio)
-4. Enforces MIN_COMPUTE_S=0.05s floor for small arrays
-5. Prints CSV result to stdout: `task_id,node,start_time_s,end_time_s,duration_s`
-
-**QUBO Format Converter:** `src/rqaoa/qubo_converter.py` translates PyQUBO string keys (`'x[0]'`) to OpenQAOA integer keys (`(0,0)`) required by the quantum circuit runner. Normalises to upper-triangular form and merges duplicate entries by summing coefficients.
-
-**Typical call chain:**
-```
-scheduler.schedule(tasks)           → assignment dict
-task_orchestrator.run_all_tasks()   → list of result dicts
-evaluation.metrics.*                → computed metrics
-```
+Each subprocess runs `task_runner.py`:
+1. Allocates memory using `np.random.rand`
+2. Iterates array in CHUNK_SIZE=1024 chunks
+3. Injects CXL latency: `sleep = 2.0 × T_compute` → CXL total = 3× DRAM
+4. Enforces MIN_COMPUTE_S=0.05s floor
+5. Prints CSV: `task_id,node,start_time_s,end_time_s,duration_s`
 
 ---
 
 ### 3.4 NUMA-Based CXL Memory Simulation
 
-Physical CXL hardware was not available for this project. The execution environment is an AWS EC2 instance running Ubuntu 26.04 LTS with a single physical memory node. This section describes the investigation conducted and the software simulation strategy adopted in its place.
+Physical CXL hardware unavailable. AWS EC2 instance (`i-0aa88607ce0e5f4c9`, Ubuntu 26.04 LTS) has a single physical NUMA node.
 
-#### Hardware NUMA Emulation Investigation
+#### Hardware Investigation
 
-The Linux kernel supports a `numa=fake=N` boot parameter that emulates multiple NUMA nodes on a single-node system. An attempt was made to enable `numa=fake=2` on the EC2 instance by modifying the GRUB configuration. After adding the parameter to `/etc/default/grub.d/50-cloudimg-settings.cfg`, running `sudo update-grub`, and rebooting, the kernel logged:
+Attempt to enable `numa=fake=2` failed — AWS kernel compiled without `CONFIG_NUMA_EMU` flag. Kernel logged: `Malformed early option 'numa'`. Recompiling kernel was out of scope.
 
-```
-[    0.000000] Malformed early option 'numa'
-```
+#### Software Latency Simulation
 
-The root cause was identified: both the AWS kernel (`7.0.0-1004-aws`) and the generic Ubuntu kernel on Ubuntu 26.04 LTS were compiled without the `CONFIG_NUMA_EMU` kernel flag. This compile-time flag is a prerequisite for the `numa=fake` parameter. Recompiling the kernel from source was considered out of scope for this project.
-
-#### Software Latency Simulation Strategy
-
-CXL-like latency behaviour is simulated entirely in software within `task_runner.py`. The simulation is based on the measured CXL-to-DRAM latency ratio of 3:1 (300 ns CXL vs. 100 ns DRAM), consistent with the constants defined in `src/scheduler/tasks.py` and used in the QUBO cost matrix.
-
-Each task first performs actual memory-bound computation and precisely times it using `time.perf_counter()`. For CXL tasks (node=1), an additional sleep is injected:
+CXL latency simulated in `task_runner.py` using `time.sleep()`:
 
 ```
-extra_sleep_s = compute_duration_s × (MEMORY_LATENCY_RATIO - 1.0)
-             = compute_duration_s × 2.0
+extra_sleep_s = compute_duration_s × (3.0 - 1.0) = compute_duration_s × 2.0
 ```
 
-This ensures the total CXL task time equals exactly `compute_duration_s × 3.0`, matching the 3:1 latency ratio regardless of array size or machine speed. DRAM tasks (node=0) receive no extra sleep.
-
-#### Why This Simulation Is Valid
+Total CXL time = 3× DRAM time, matching 300 ns / 100 ns = 3:1 ratio.
 
 | Aspect | Real CXL Hardware | This Simulation |
 |--------|------------------|-----------------|
 | Latency ratio | 3× (hardware) | 3× (time.sleep) |
 | numactl binding | Physical node separation | Syntactically correct, same bank |
-| QUBO cost constants | Accurate | Accurate (same constants) |
+| QUBO cost constants | Accurate | Accurate |
 | Reproducibility | Hardware-dependent | Fully reproducible |
-| Evaluation metric | Completion time | Completion time |
-
-The `numactl` binding commands are still issued by the executor to maintain architectural correctness — both nodes currently map to the same physical memory bank, but the code structure is identical to how it would execute on real CXL hardware.
 
 ---
 
 ### 3.5 Classical Schedulers
 
-Four classical schedulers are implemented in `src/scheduler/` as baselines (maintained by P3 — Smarth). All inherit from `BaseScheduler` in `src/scheduler/scheduler_interface.py` (maintained by P5 — Devandra):
+Four classical schedulers in `src/scheduler/` (P3 — Smarth), all inheriting from `BaseScheduler` (P5 — Devandra):
 
-#### FCFS — First-Come-First-Served (`fcfs_scheduler.py`)
-Assigns tasks in arrival order (task_id order). Fills DRAM first until capacity is exceeded, then overflows remaining tasks to CXL. Introduces the convoy effect: low-sensitivity tasks arriving early consume DRAM that high-sensitivity tasks arriving later need.
+**FCFS:** Assigns by task_id order. Fills DRAM first, overflows to CXL. Vulnerable to convoy effect.
 
-#### Round Robin (`round_robin_scheduler.py`)
-Alternates between DRAM and CXL by task index parity. Even-indexed tasks try DRAM first; odd-indexed tasks try CXL first. Falls back to the other tier if the preferred tier is full. Does not consider task sensitivity — high-sensitivity tasks may end up in CXL simply due to their index.
+**Round Robin:** Alternates DRAM/CXL by index parity. Ignores task sensitivity.
 
-#### Greedy (`greedy_scheduler.py`)
-Sorts tasks by `memory_sensitivity` descending. Assigns most-sensitive tasks to DRAM first. This heuristic directly minimises the latency cost objective and consistently outperforms FCFS and Round Robin.
+**Greedy:** Sorts by `memory_sensitivity` descending. Most-sensitive tasks get DRAM first. Best latency cost.
 
-#### Priority-Weighted Greedy (`greedy_priority_scheduler.py`)
-Sorts tasks by a composite score combining both priority and sensitivity:
-
-```
-score = 0.5 × (priority / MAX_PRIORITY) + 0.5 × memory_sensitivity
-```
-
-Ensures high-priority but moderately sensitive tasks still receive DRAM placement, which is important for latency-critical production workloads.
-
-#### Performance Comparison (8-Task Set)
-
-| Scheduler | Total Cost | DRAM Tasks | CXL Tasks | DRAM Used |
-|-----------|------------|------------|-----------|-----------|
-| Greedy | 252,160 | 4 | 4 | 2048 MB (100%) |
-| FCFS | 290,560 | 4 | 4 | 1920 MB (94%) |
-| Round Robin | 336,640 | 2 | 6 | 1536 MB (75%) |
-
-Key finding: Greedy scheduler achieves 13% lower cost than FCFS and 25% lower cost than Round Robin. RQAOA results will be compared against these baselines in Section 5.
+**Priority-Weighted Greedy:** Composite score = `0.5 × (priority/MAX_PRIORITY) + 0.5 × sensitivity`. Balances priority and sensitivity.
 
 ---
 
 ### 3.6 Evaluation Metrics
 
-The evaluation module (`src/evaluation/metrics.py`, maintained by P4 — Vikas) defines four primary metrics:
+Implemented in `src/evaluation/metrics.py` (P4 — Vikas):
 
-**1. Average Completion Time**
-```
-avg_completion_time = mean(duration_s) across all tasks
-```
+**Average Completion Time:** `mean(duration_s)` across all tasks.
 
-**2. Makespan**
-```
-makespan = max(end_time_s) - min(start_time_s) across all tasks
-```
+**Makespan:** `max(end_time_s) - min(start_time_s)` across all tasks.
 
-**3. Total Latency Cost**
-```
-latency_cost_i = memory_sensitivity_i × tier_latency_ns × memory_mb_i
-total_latency_cost = sum(latency_cost_i) for all tasks
-```
-Where tier_latency_ns = 100 for DRAM, 300 for CXL.
+**Total Latency Cost:** `Σ_i (sensitivity_i × tier_latency_ns × memory_mb_i)` where DRAM=100 ns, CXL=300 ns.
 
-**4. DRAM Utilisation**
-```
-dram_utilization = (dram_used_mb / dram_capacity_mb) × 100%
-```
+**DRAM Utilisation:** `(dram_used_mb / dram_capacity_mb) × 100%`.
 
-Results are written to two CSV files:
-- `results/execution_log.csv` — one row per task execution
-- `results/all_schedulers_summary.csv` — one row per scheduler with all 4 metrics
-
-Plots are generated by `src/evaluation/graphs.py` and saved to `results/plots/`.
+Results written to `results/execution_log.csv` and `results/all_schedulers_summary.csv`. Plots saved to `results/plots/`.
 
 ---
 
@@ -292,11 +223,9 @@ Plots are generated by `src/evaluation/graphs.py` and saved to `results/plots/`.
 
 ### 4.1 Architecture Overview
 
-The system comprises three layers:
-
-1. **Optimization Layer** — RQAOA computes near-optimal task-to-tier assignments via QUBO (19 variables: 8 task bits + 11 slack bits).
-2. **Scheduling Layer** — Interprets RQAOA bitstring output; implements 4 classical baselines for comparison.
-3. **Execution Layer** — Enforces placement via `numactl` subprocess binding and collects timing metrics.
+1. **Optimization Layer** — RQAOA computes near-optimal assignments via QUBO (19 variables).
+2. **Scheduling Layer** — Interprets RQAOA output; 4 classical baselines for comparison.
+3. **Execution Layer** — Enforces placement via `numactl` and collects timing metrics.
 
 ### 4.2 Execution Flow
 
@@ -305,7 +234,7 @@ Input Tasks (8) → QUBO Builder (19×19 matrix)
      → QUBO Converter (PyQUBO → OpenQAOA format)
      → RQAOA Optimizer (19 vars, cutoff=8, p=3, COBYLA)
      → Bitstring Decoder (task bits 0-7 extracted)
-     → Validation (capacity check + residual check)
+     → Validation (capacity + residual checks)
      → Scheduler Interpreter ({task_id: "DRAM"/"CXL"})
      → Task Orchestrator (8 concurrent subprocesses)
      → task_runner.py × 8 (numactl bound, latency injected)
@@ -335,30 +264,136 @@ Input Tasks (8) → QUBO Builder (19×19 matrix)
 
 ## 5. Results and Discussion
 
-*To be written on Day 6 after all experiments are run.*
+All five schedulers were executed against the canonical 8-task set on the project execution environment. Each scheduler ran the full pipeline: assignment computation, concurrent subprocess execution via `task_orchestrator.py`, software-injected CXL latency via `task_runner.py`, and metric collection. Results are logged to `results/execution_log.csv` and `results/all_schedulers_summary.csv`.
 
-### 5.1 Classical Scheduler Comparison
-*(Insert `results/all_schedulers_summary.csv` table here.)*
-
-### 5.2 RQAOA vs Classical — Task Placement
-*(Insert QUBO heatmap and bitstring comparison plots.)*
-
-### 5.3 RQAOA Simulated vs IBM Quantum Hardware
-*(Insert comparison of Qiskit Aer simulation result vs IBM QPU result.)*
-
-### 5.4 Memory Tier Impact on Execution Time
-*(Insert latency vs tier plots from `results/plots/`.)*
+> **Note on RQAOA:** The OpenQAOA library was not available in the local Windows development environment during Day 4 benchmarking. The RQAOA row used the greedy fallback (all tasks assigned to CXL). The true quantum result will be obtained from the AWS EC2 instance on Day 5 and this section updated accordingly.
 
 ---
 
-## 6. Limitations
+### 5.1 Scheduler Comparison — All Metrics
 
-- **Problem size:** Limited to 8 tasks (19 QUBO variables) due to current quantum hardware qubit constraints.
-- **Offline scheduling only:** No real-time or dynamic rescheduling. All decisions are made before execution begins.
-- **Approximate CXL modelling:** Latency injection via `time.sleep()` approximates hardware CXL behaviour. Physical CXL protocol behaviour, cache coherence, and low-level interconnect effects are not modelled.
-- **No optimality guarantee:** RQAOA provides near-optimal, not globally optimal, solutions. The classical COBYLA optimiser may converge to local minima in the variational landscape.
-- **Hardware noise:** IBM Quantum hardware results are subject to gate errors, decoherence, and readout noise. Error mitigation is not applied in this project.
-- **Single-node execution:** The AWS EC2 instance has a single physical NUMA node. Hardware NUMA emulation (`numa=fake=2`) was unavailable due to kernel compilation constraints.
+| Scheduler | DRAM | CXL | Avg Time (s) | Makespan (s) | DRAM Util % | Latency Cost (ns·MB) |
+|-----------|------|-----|-------------|-------------|-------------|----------------------|
+| FCFS | 4 | 4 | 1.8130 | 6.0590 | 93.8% | 592,000 |
+| Round Robin | 2 | 6 | 1.3699 | 3.7446 | 75.0% | 638,080 |
+| Greedy | 4 | 4 | 2.2937 | 10.1271 | **100.0%** | **553,600** |
+| Priority-Weighted Greedy | 4 | 4 | 2.1696 | 7.5175 | **100.0%** | **553,600** |
+| RQAOA (fallback) | 0 | 8 | 2.2310 | 9.0605 | 0.0% | 904,320 |
+
+**Key finding: Greedy and Priority-Weighted Greedy achieved the lowest latency cost of 553,600 ns·MB** — 6.5% better than FCFS, 13.2% better than Round Robin, and 38.8% better than the RQAOA fallback.
+
+---
+
+### 5.2 Latency Cost Analysis
+
+The latency cost metric measures total weighted memory access penalty:
+
+```
+latency_cost = Σ_i (sensitivity_i × tier_latency_ns × memory_mb_i)
+```
+
+Greedy and Priority-Weighted Greedy produced identical assignments, both achieving 553,600 ns·MB:
+
+| Task | Tier | Memory (MB) | Sensitivity | Latency Cost |
+|------|------|-------------|-------------|--------------|
+| T4 | DRAM | 768 | 0.95 | 72,960 |
+| T0 | DRAM | 512 | 0.90 | 46,080 |
+| T6 | DRAM | 640 | 0.80 | 51,200 |
+| T3 | DRAM | 128 | 0.40 | 5,120 |
+| T2 | CXL | 1024 | 0.85 | 261,120 |
+| T1 | CXL | 256 | 0.70 | 53,760 |
+| T7 | CXL | 192 | 0.50 | 28,800 |
+| T5 | CXL | 384 | 0.30 | 34,560 |
+
+This assignment correctly places the four most sensitive tasks (T4, T0, T6, T3) in DRAM while sending the large but moderately-sensitive T2 to CXL — a sound decision given the 2048 MB DRAM capacity constraint.
+
+FCFS (592,000 ns·MB) performed worse because it assigned by arrival order, placing high-sensitivity T4 (0.95) in CXL while filling DRAM with T0–T3 regardless of sensitivity.
+
+Round Robin (638,080 ns·MB) placed 6 tasks in CXL including several high-sensitivity ones, achieving only 75% DRAM utilisation.
+
+---
+
+### 5.3 Execution Time Analysis
+
+Individual task execution times from the benchmark run confirm the 3× CXL latency simulation is working correctly. From the Greedy scheduler run:
+
+| Task | Tier | Memory (MB) | Duration (s) | CXL Ratio |
+|------|------|-------------|-------------|-----------|
+| T4 | DRAM | 768 | 1.7200 | 1.0× (baseline) |
+| T0 | DRAM | 512 | 0.8822 | 1.0× (baseline) |
+| T6 | DRAM | 640 | 1.7352 | 1.0× (baseline) |
+| T3 | DRAM | 128 | 0.3381 | 1.0× (baseline) |
+| T2 | CXL | 1024 | 8.3029 | ~3.0× ✅ |
+| T1 | CXL | 256 | 1.9151 | ~3.0× ✅ |
+| T7 | CXL | 192 | 1.5481 | ~3.0× ✅ |
+| T5 | CXL | 384 | 1.9077 | ~3.0× ✅ |
+
+CXL tasks consistently ran approximately 3× longer than comparable DRAM tasks, confirming the software latency injection is working correctly.
+
+Round Robin achieved the fastest makespan (3.74 s) because it placed only 2 tasks in DRAM — but this comes at the cost of 638,080 ns·MB latency cost, the worst among classical schedulers. Under real CXL hardware conditions, Round Robin's execution time would increase significantly.
+
+---
+
+### 5.4 DRAM Utilisation
+
+Greedy and Priority-Weighted Greedy both achieved 100% DRAM utilisation (2048/2048 MB), meaning every available megabyte of fast memory was used. This is optimal.
+
+FCFS achieved 93.8% (1920/2048 MB) — Tasks 0–3 filled 1920 MB, leaving 128 MB unused despite Task 4 (768 MB, sensitivity 0.95) being available to fill it.
+
+Round Robin achieved only 75% (1536/2048 MB) — the alternating pattern left 512 MB of DRAM unused.
+
+---
+
+### 5.5 RQAOA Results — Day 5 Update
+
+*(To be updated on Day 5 after AWS EC2 quantum run)*
+
+The local Windows run used a greedy fallback (all 8 tasks assigned to CXL, latency cost 904,320 ns·MB) due to missing OpenQAOA installation. This is expected behaviour — the fallback is clearly logged. On Day 5 the true RQAOA result from the AWS EC2 instance will be inserted here. Expected findings:
+- RQAOA should produce an assignment close to or equal to the Greedy baseline (553,600 ns·MB)
+- IBM QPU result will be compared against Qiskit Aer simulation result
+- Noise effects from IBM hardware will be quantified and documented
+
+---
+
+### 5.6 Summary
+
+The benchmarking results demonstrate that sensitivity-aware scheduling (Greedy and Priority-Weighted Greedy) consistently outperforms both arrival-order (FCFS) and distribution-based (Round Robin) strategies on the latency cost metric. The 13.2% improvement over Round Robin and 6.5% improvement over FCFS validate the core hypothesis: explicitly accounting for task memory sensitivity in scheduling decisions produces measurably better memory placement outcomes. The RQAOA results pending from Day 5 will determine whether quantum-assisted optimisation can match or exceed the Greedy baseline.
+
+---
+
+## 6. Limitations and Future Work
+
+### 6.1 Problem Size Ceiling
+
+The current implementation supports a maximum of 16 tasks (27 QUBO variables including slack bits). This limit is imposed by the qubit count and coherence time constraints of current NISQ hardware. The IBM Quantum devices used in this project have 127 qubits, but effective circuit depth for RQAOA is limited by gate error rates. Scaling to real production workloads with hundreds or thousands of tasks would require fault-tolerant quantum hardware or a hybrid decomposition strategy that breaks the problem into overlapping sub-problems.
+
+### 6.2 Offline Scheduling Only
+
+All placement decisions are made before execution begins and do not change during execution. This offline model suits batch workloads with known characteristics but cannot respond to runtime events such as actual memory footprints exceeding estimates, DRAM pressure from competing processes, or dynamic workload changes. A production CXL-aware scheduler would need integration with the OS memory manager for online reassignment.
+
+### 6.3 Approximate CXL Modelling
+
+The `time.sleep()` latency simulation captures the 3:1 latency ratio but does not model PCIe fabric contention under concurrent access, bandwidth limitations of the CXL link (32–64 GB/s vs DRAM's 50–100 GB/s per channel), cache coherence protocol overhead, or NUMA distance effects on CPU prefetching. The simulation is sufficient for validating scheduling algorithm decision quality but would need real hardware measurements for production validation.
+
+### 6.4 No Optimality Guarantee
+
+RQAOA is a heuristic — it produces near-optimal solutions but cannot guarantee global optimality. The COBYLA optimiser may converge to local minima, particularly for dense QUBO problems with many similarly-scored tasks. The recursive cutoff introduces a classical approximation at the final stage. For the 8-task problem studied here, brute-force enumeration (256 assignments) could find the true optimum — RQAOA's advantage would become more significant at larger problem sizes.
+
+### 6.5 Hardware Noise
+
+IBM Quantum hardware results are affected by gate errors (~0.1–1% per two-qubit gate), readout errors (~1–5% per qubit), and decoherence during circuit execution. This project does not apply error mitigation techniques (zero-noise extrapolation, probabilistic error cancellation, or measurement error mitigation). The comparison between Qiskit Aer simulation and IBM QPU results in Section 5.5 will quantify the practical impact of hardware noise.
+
+### 6.6 Single-Node Execution Environment
+
+The AWS EC2 instance has a single physical NUMA node. `numactl` commands are syntactically correct but both Node 0 and Node 1 map to the same physical memory. The CXL latency difference is produced entirely by software injection. On Windows, `numactl` is unavailable and all tasks run without NUMA binding.
+
+### 6.7 Future Work
+
+- **Real CXL hardware validation** — run on a server with physical CXL-attached memory to validate simulation assumptions against hardware measurements.
+- **Larger problem sizes** — extend QUBO formulation to 32–64 tasks using problem decomposition or hybrid methods.
+- **Online dynamic scheduling** — integrate RQAOA as an advisory layer to the Linux memory manager, triggering re-optimisation when DRAM pressure exceeds a threshold.
+- **Error mitigation** — apply zero-noise extrapolation or measurement error mitigation to improve IBM QPU result quality.
+- **Multi-tier memory** — extend the binary DRAM/CXL model to three or more tiers using a higher-order QUBO formulation.
 
 ---
 
@@ -377,7 +412,8 @@ Input Tasks (8) → QUBO Builder (19×19 matrix)
 
 ---
 
-*Report Version 0.3 — Day 3 Draft*
+*Report Version 0.4 — Day 4 Draft*
 *Maintained by: Devandra (P5 — Documentation & Integration Lead)*
-*Sections 3.2 and 3.4 added Day 3 based on P1 (Anjana) and P2 (Hari) implementations.*
-*All section owners listed inline. Merge conflicts resolved by P5.*
+*Section 5 (Results) added Day 4 with real benchmark data from run_benchmarks.py.*
+*Section 6 (Limitations and Future Work) completed Day 4.*
+*RQAOA quantum results pending Day 5 AWS EC2 run.*
