@@ -48,6 +48,11 @@ All outputs are generated inside the `results/` folder:
 - `execution_log.csv`: Detailed task-by-task execution times.
 - `plots/`: Bar charts comparing average completion time, total latency costs, and memory distribution.
 
+### Evaluation Plots
+![Average Completion Time](results/plots/avg_completion_time.png)
+![Total Latency Cost](results/plots/latency_cost.png)
+![Memory Distribution](results/plots/memory_distribution.png)
+
 ## Documentation
 
 - `quantum_scheduler/report.md`: The complete research report.

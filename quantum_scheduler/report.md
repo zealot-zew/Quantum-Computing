@@ -123,17 +123,17 @@ The following table summarizes the execution results based on our OS-level NUMA 
 
 | Scheduler | DRAM Tasks | CXL Tasks | Avg Time (s) | Makespan (s) | DRAM Util (%) | Latency Cost (ns·MB) |
 |-----------|------------|-----------|--------------|--------------|---------------|-----------------------|
-| FCFS | 4 | 4 | 0.2205 | 0.7703 | 93.8 | 59200.00 |
-| Round Robin | 2 | 6 | 0.1738 | 0.4528 | 75.0 | 63808.00 |
-| Greedy | 4 | 4 | 0.1570 | 0.4869 | 100.0 | 55360.00 |
-| Greedy Priority | 4 | 4 | 0.1758 | 0.4863 | 100.0 | 55360.00 |
-| **RQAOA** | 5 | 3 | **0.1371** | **0.5150** | 162.5* | **36672.00** |
+| FCFS | 4 | 4 | 1.9778 | 5.8121 | 93.75 | 592000.00 |
+| Round Robin | 2 | 6 | 2.2189 | 5.5507 | 75.0 | 638080.00 |
+| Greedy | 4 | 4 | 1.8364 | 5.7634 | 100.0 | 553600.00 |
+| Greedy Priority | 4 | 4 | 1.8296 | 5.6254 | 100.0 | 553600.00 |
+| **RQAOA** | 3 | 5 | 2.1119 | 5.6939 | 56.25 | 768640.00 |
 
-*Note: The RQAOA result achieved a theoretically lower latency cost but required a fallback execution profile due to hardware limitations on the IBM Quantum device.*
+*Note: As this was run on a shallow-depth RQAOA simulator (p=1), the quantum algorithm found a physically valid state (3 DRAM / 5 CXL) but fell into a local minimum, underperforming the exact Classical Greedy solver. This highlights current limitations in NISQ-era optimization for small, highly constrained exact problems.*
 
 ### 4.2 Task Placement Analysis
 
-The **Greedy** algorithms performed well by filling exactly 100% of the DRAM capacity, minimizing latency for the most sensitive tasks. However, the **RQAOA** optimizer was able to explore combinatorial packings that the purely greedy heuristics missed, finding an arrangement that placed 5 tasks into DRAM and dramatically lowering the overall latency cost metric. 
+The **Greedy** algorithms performed optimally for this problem size by filling exactly 100% of the DRAM capacity, minimizing latency for the most sensitive tasks. The **RQAOA** optimizer successfully formulated and respected the strict capacity limits (placing 3 tasks into DRAM, using 56% capacity). However, because it operates as a heuristic at low circuit depths, it missed the global optimum (100% packing). This demonstrates that while the QUBO mapping is correct, deeper circuits and error-mitigated hardware are required to outperform classical greedy methods on NP-hard bin-packing variants. 
 
 ### 4.3 RQAOA Simulated vs IBM Quantum Hardware (Noise Effects)
 

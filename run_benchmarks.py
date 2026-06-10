@@ -178,6 +178,7 @@ def _run_rqaoa_scheduler(
             DEFAULT_TASKS,
             num_slack_bits,
             compute_dram_used,
+            DRAM_CAPACITY_MB as UNSCALED_DRAM_CAP,
         )
         from src.rqaoa.qubo_converter import convert_numpy_qubo_to_openqaoa_dict
         from src.rqaoa.rqaoa_runner import run_rqaoa_optimizer
@@ -187,14 +188,15 @@ def _run_rqaoa_scheduler(
         # because it has its own Task dataclass.
         qubo_tasks = DEFAULT_TASKS
         n_tasks = len(qubo_tasks)
-        n_slack = num_slack_bits(dram_cap)
+        n_slack = num_slack_bits(UNSCALED_DRAM_CAP)
         n_total = n_tasks + n_slack
 
         logger.info(
             "RQAOA: Building QUBO (%d tasks + %d slack = %d variables)...",
             n_tasks, n_slack, n_total,
         )
-        qubo_matrix = _build_qubo(qubo_tasks, dram_capacity_mb=dram_cap)
+        # Use unscaled DRAM cap to match the unscaled DEFAULT_TASKS
+        qubo_matrix = _build_qubo(qubo_tasks, dram_capacity_mb=UNSCALED_DRAM_CAP)
         qubo_dict = convert_numpy_qubo_to_openqaoa_dict(qubo_matrix)
 
         logger.info("RQAOA: Running optimizer...")
