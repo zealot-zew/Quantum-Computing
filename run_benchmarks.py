@@ -88,6 +88,7 @@ SUMMARY_HEADERS: List[str] = [
     "makespan_s",
     "total_latency_cost_ns",
     "avg_latency_cost_ns",
+    "scheduling_time_s",
 ]
 
 
@@ -225,6 +226,7 @@ def _compute_summary_row(
     tasks: List[Task],
     results: List[Dict],
     dram_cap: float,
+    scheduling_time_s: float,
 ) -> Dict:
     """Compute a single summary row for the aggregate CSV.
 
@@ -234,6 +236,7 @@ def _compute_summary_row(
         tasks: Task list.
         results: Per-task result dicts from the orchestrator.
         dram_cap: DRAM capacity for utilization calculation.
+        scheduling_time_s: Time taken to compute the assignment.
 
     Returns:
         Dict with all SUMMARY_HEADERS keys populated.
@@ -274,6 +277,7 @@ def _compute_summary_row(
         "makespan_s": round(makespan, 6),
         "total_latency_cost_ns": round(total_latency, 2),
         "avg_latency_cost_ns": round(avg_latency, 2),
+        "scheduling_time_s": round(scheduling_time_s, 4),
     }
 
 
@@ -284,20 +288,20 @@ def _print_comparison_table(summaries: List[Dict]) -> None:
         summaries: List of summary dicts (one per scheduler).
     """
     header_fmt = (
-        "{:<18} {:>6} {:>6} {:>10} {:>10} {:>10} {:>14}"
+        "{:<18} {:>6} {:>6} {:>10} {:>10} {:>10} {:>14} {:>10}"
     )
     row_fmt = (
-        "{:<18} {:>6} {:>6} {:>10.4f} {:>10.4f} {:>10.1f} {:>14.2f}"
+        "{:<18} {:>6} {:>6} {:>10.4f} {:>10.4f} {:>10.1f} {:>14.2f} {:>10.4f}"
     )
 
-    print("\n" + "=" * 90)
+    print("\n" + "=" * 105)
     print("SCHEDULER COMPARISON — All schedulers vs canonical 8-task set")
-    print("=" * 90)
+    print("=" * 105)
     print(header_fmt.format(
         "Scheduler", "DRAM", "CXL",
-        "Avg Time", "Makespan", "DRAM %", "Latency Cost",
+        "Avg Time", "Makespan", "DRAM %", "Latency Cost", "Sched Time"
     ))
-    print("-" * 90)
+    print("-" * 105)
 
     for s in summaries:
         print(row_fmt.format(
@@ -308,9 +312,10 @@ def _print_comparison_table(summaries: List[Dict]) -> None:
             s["makespan_s"],
             s["dram_utilization_pct"],
             s["total_latency_cost_ns"],
+            s["scheduling_time_s"],
         ))
 
-    print("=" * 90)
+    print("=" * 105)
 
     # Highlight best scheduler by latency cost
     best = min(summaries, key=lambda s: s["total_latency_cost_ns"])
@@ -370,6 +375,7 @@ def run_benchmarks(
         logger.info("=" * 60)
 
         # Step 1: Get assignment
+        t0 = time.perf_counter()
         try:
             assignment = _get_scheduler_assignment(
                 scheduler_name, tasks, dram_cap, cxl_cap,
@@ -379,6 +385,7 @@ def run_benchmarks(
                 "Scheduler '%s' failed: %s. Skipping.", scheduler_name, exc,
             )
             continue
+        scheduling_time_s = time.perf_counter() - t0
 
         logger.info("Assignment: %s", assignment)
 
@@ -419,7 +426,7 @@ def run_benchmarks(
 
         # Step 4: Compute summary
         summary = _compute_summary_row(
-            scheduler_name, assignment, tasks, results, dram_cap,
+            scheduler_name, assignment, tasks, results, dram_cap, scheduling_time_s
         )
         all_summaries.append(summary)
 

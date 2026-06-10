@@ -7,6 +7,32 @@ Maintained by: Vikas (P4)
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+
+
+def plot_scheduling_overhead(
+    scheduler_names,
+    scheduling_times,
+    output_file,
+):
+    plt.figure(figsize=(8, 5))
+
+    # Use log scale since quantum simulation is orders of magnitude slower
+    plt.bar(
+        scheduler_names,
+        scheduling_times,
+        color='coral'
+    )
+
+    plt.yscale('log')
+    plt.title("Scheduling Overhead (Log Scale)")
+    plt.xlabel("Scheduler")
+    plt.ylabel("Scheduling Compute Time (s)")
+
+    plt.tight_layout()
+    plt.savefig(output_file)
+    plt.close()
+
 
 
 def plot_avg_completion_time(
@@ -122,5 +148,15 @@ def generate_all_plots(
             "memory_distribution.png",
         ),
     )
+
+    if "scheduling_time_s" in df.columns:
+        plot_scheduling_overhead(
+            df["scheduler_name"],
+            df["scheduling_time_s"],
+            os.path.join(
+                output_dir,
+                "scheduling_overhead.png",
+            ),
+        )
 
     print(f"Plots saved to {output_dir}")
