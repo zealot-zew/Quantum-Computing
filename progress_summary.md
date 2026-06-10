@@ -19,7 +19,7 @@
 - [x] Day 3: RQAOA runner + result parser + full execution pipeline
 - [x] Day 4: Benchmarking, plots, CSV outputs
 - [x] Day 5: IBM Quantum run + code cleanup / linting pass
-- [ ] Day 6: Integration, `main.py` fully wired, report finalised
+- [x] Day 6: Integration, `main.py` fully wired, report finalised
 - [ ] Day 7: Final testing, tag v1.0.0, submit
 
 ---
@@ -97,3 +97,4 @@
 - **2026-06-08**: Started P2 Day 3 work. Implemented RQAOA bitstring decoding, optional CXL bandwidth throttling, orchestrator pass-through, and focused tests.
 - **2026-06-08**: Completed cleanup pass for repo-level checks. `flake8 src/ --max-line-length=100`, `mypy src/`, `pytest tests/`, `pytest test_schedulers.py`, and full `pytest` discovery now pass.
 - **2026-06-10**: Completed Day 5 RQAOA IBM Quantum integration. Added dotenv logic to read `IBM_QUANTUM_TOKEN` and fallback mechanics. Fixed all linting and mypy typing errors in `src/rqaoa/` and `src/executor/`. Drafted `docs/noise_effects.md` explaining QPU bit-flip noise vs Aer simulation.
+- **2026-06-10**: Completed Day 6 Integration & Reporting. Wired `main.py` to trigger full pipeline including automated plot generation via `src/evaluation/graphs.py`. Executed benchmark and generated plots/CSVs. Updated `quantum_scheduler/report.md` with final analysis, evaluation metrics, and noise effects discussion. Created root `README.md`.
