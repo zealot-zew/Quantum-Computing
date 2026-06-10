@@ -1,6 +1,5 @@
-
 """
-run_rqaoa_pipeline.py — QUBO -> RQAOA -> decode -> validate -> save
+run_rqaoa_pipeline.py — QUBO → RQAOA → decode → validate → save
 
 Updated for slack-variable formulation:
   - Total QUBO variables = n_tasks + n_slack_bits (e.g. 8 + 11 = 19)
@@ -8,17 +7,17 @@ Updated for slack-variable formulation:
   - Only task bits (first n_tasks indices) are extracted as the assignment
   - Slack bits are decoded separately for validation
   - Validation checks DRAM capacity is not exceeded
+
+Maintained by: Hari (P2 — Infra + Quantum Algo)
 """
 
-import logging, os, csv, sys
+import csv
+import logging
+import os
+from pathlib import Path
+from typing import Dict
 
-src_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
-PROJECT_ROOT = os.path.dirname(src_path)
-
-from rqaoa.qubo_builder import (
+from src.rqaoa.qubo_builder import (
     build_qubo_from_tasks,
     compute_latency_cost,
     compute_dram_used,
@@ -27,19 +26,21 @@ from rqaoa.qubo_builder import (
     DEFAULT_TASKS,
     DRAM_CAPACITY_MB,
 )
-from rqaoa.qubo_converter import convert_numpy_qubo_to_openqaoa_dict
-from rqaoa.rqaoa_runner import run_rqaoa_optimizer
-from rqaoa.result_parser import decode_assignment_to_memory_map, validate_assignment
+from src.rqaoa.qubo_converter import convert_numpy_qubo_to_openqaoa_dict
+from src.rqaoa.rqaoa_runner import run_rqaoa_optimizer
+from src.rqaoa.result_parser import decode_assignment_to_memory_map, validate_assignment
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+# Project root: two levels up from src/rqaoa/
+PROJECT_ROOT: str = str(Path(__file__).parents[2])
 
 
 def run_full_rqaoa_pipeline(
-    tasks:            list  = None,
+    tasks: list = None,
     dram_capacity_mb: float = DRAM_CAPACITY_MB,
-    label:            str   = "8tasks",
-) -> dict:
+    label: str = "8tasks",
+) -> Dict[int, str]:
     """
     Runs the complete QUBO -> RQAOA -> decode -> validate -> save pipeline.
 
@@ -87,10 +88,9 @@ def run_full_rqaoa_pipeline(
     logger.info(f"  Non-zero entries: {len(qubo_dict)}")
 
     # ── Step 3: Run RQAOA on the full n_total variables ──────────────────────
-    logger.info(f"Step 3: Running RQAOA ({n_total} variables)...")
+    logger.info("Step 3: Running RQAOA (%d variables)...", n_total)
     raw_solution = run_rqaoa_optimizer(qubo_dict, num_variables=n_total)
-    print("\nRAW RQAOA SOLUTION")
-    print(raw_solution)
+    logger.debug("Raw RQAOA solution: %s", raw_solution)
 
     # Verify RQAOA returned all expected variables
     if len(raw_solution) != n_total:
@@ -150,8 +150,7 @@ def run_full_rqaoa_pipeline(
     logger.info("  Validation passed ✅")
 
     # ── Step 6: Decode to human-readable tier map ─────────────────────────────
-    print("TASK ASSIGNMENT INT")
-    print(task_assignment_int)
+    logger.debug("Task assignment (int): %s", task_assignment_int)
     memory_map = decode_assignment_to_memory_map(task_assignment_int)
 
     # Compute actual latency cost (pure scheduling metric, no penalty)

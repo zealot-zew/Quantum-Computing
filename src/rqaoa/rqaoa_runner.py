@@ -1,24 +1,21 @@
-
 """
-rqaoa_runner.py
+rqaoa_runner.py — Runs RQAOA on a QUBO problem.
 
-Runs RQAOA on a QUBO problem using OpenQAOA + local vectorized simulator.
-Supports 8, 12, and 16 task sizes with cutoff tuned per size.
-Falls back to greedy assignment if OpenQAOA fails.
+Uses OpenQAOA + local vectorized simulator. Supports 8, 12, and 16
+task sizes with recursive cutoff tuned per problem size.
+Falls back to a greedy assignment if OpenQAOA is unavailable or fails.
 
 Variable convention: 0 = DRAM, 1 = CXL
+
+Maintained by: Hari (P2 — Infra + Quantum Algo)
 """
 
-import logging, sys, os
+import logging
+from typing import Dict
 
-src_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
-
-from rqaoa.rqaoa_config import RQAOA_LAYERS, SHOTS
+from src.rqaoa.rqaoa_config import RQAOA_LAYERS, SHOTS
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 CUTOFF_BY_SIZE: dict = {
     19: 8,   # 8 tasks + 11 slack bits
@@ -77,32 +74,25 @@ def _extract_assignment_from_result(result, num_variables: int) -> dict:
 
     # Pick the bitstring with the lowest energy value
     best_bitstring = min(solution_dict, key=lambda k: solution_dict[k])
-    logger.info(f"Best bitstring: {best_bitstring} "
-                f"(energy: {solution_dict[best_bitstring]:.4f})")
+    best_energy = solution_dict[best_bitstring]
+    logger.info(
+        "Best bitstring: %s (energy: %.4f)", best_bitstring, best_energy
+    )
 
     # Convert bitstring to assignment dict
     # Pad with zeros on the left if shorter than num_variables
     padded = best_bitstring.zfill(num_variables)
-    print("\nSOLUTION DICT")
-    print(solution_dict)
-    print("Best bitstring:", best_bitstring)
-    forward = {i:int(best_bitstring[i])
-           for i in range(num_variables)}
+    assignment: Dict[int, int] = {
+        i: int(padded[i])
+        for i in range(num_variables)
+    }
 
-    reverse = {i:int(best_bitstring[::-1][i])
-           for i in range(num_variables)}
-    assignment = {
-    i: int(padded[i])
-    for i in range(num_variables)
-}
-    print("\nDECODED")
-    for i in range(num_variables):
-        print(i, padded[i], assignment[i])
-    logger.info(f"Assignment: {assignment}")
+    logger.debug("Solution dict: %s", solution_dict)
+    logger.debug("Assignment: %s", assignment)
     return assignment
 
 
-def run_rqaoa_optimizer(qubo_dict: dict, num_variables: int) -> dict:
+def run_rqaoa_optimizer(qubo_dict: dict, num_variables: int) -> Dict[int, int]:
     """
     Runs RQAOA and returns the optimal variable assignment.
 
@@ -136,15 +126,15 @@ def run_rqaoa_optimizer(qubo_dict: dict, num_variables: int) -> dict:
 
         return _extract_assignment_from_result(rqaoa_solver.result, num_variables)
 
-    except ImportError as e:
-        logger.error(f"OpenQAOA import error: {e}")
+    except ImportError as exc:
+        logger.error("OpenQAOA import error: %s", exc)
         return _greedy_fallback(qubo_dict, num_variables)
-    except Exception as e:
-        logger.error(f"RQAOA failed: {e}")
+    except Exception as exc:
+        logger.error("RQAOA failed: %s", exc)
         return _greedy_fallback(qubo_dict, num_variables)
 
 
-def _greedy_fallback(qubo_dict: dict, num_variables: int) -> dict:
+def _greedy_fallback(qubo_dict: dict, num_variables: int) -> Dict[int, int]:
     """
     Sensitivity-based greedy fallback. NOT a quantum result.
     Used only when OpenQAOA fails.
@@ -154,7 +144,7 @@ def _greedy_fallback(qubo_dict: dict, num_variables: int) -> dict:
     diagonal_costs = {i: qubo_dict.get((i, i), 0.0) for i in range(num_variables)}
     sorted_tasks   = sorted(diagonal_costs.items(), key=lambda x: x[1], reverse=True)
 
-    assignment: dict = {}
+    assignment: Dict[int, int] = {}
     cxl_budget: float = 4096.0
 
     try:
