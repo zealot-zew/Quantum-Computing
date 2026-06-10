@@ -122,6 +122,7 @@ def _get_scheduler_assignment(
     tasks: List[Task],
     dram_cap: float,
     cxl_cap: float,
+    use_ibm: bool = False,
 ) -> Dict[int, str]:
     """Run a single scheduler and return its assignment dict.
 
@@ -151,7 +152,7 @@ def _get_scheduler_assignment(
         return scheduler.schedule(tasks)
 
     elif scheduler_name == "rqaoa":
-        return _run_rqaoa_scheduler(tasks, dram_cap)
+        return _run_rqaoa_scheduler(tasks, dram_cap, use_ibm)
 
     else:
         raise ValueError(f"Unknown scheduler: {scheduler_name}")
@@ -160,6 +161,7 @@ def _get_scheduler_assignment(
 def _run_rqaoa_scheduler(
     tasks: List[Task],
     dram_cap: float,
+    use_ibm: bool = False,
 ) -> Dict[int, str]:
     """Run RQAOA optimizer and return a tier assignment dict.
 
@@ -201,7 +203,7 @@ def _run_rqaoa_scheduler(
         qubo_dict = convert_numpy_qubo_to_openqaoa_dict(qubo_matrix)
 
         logger.info("RQAOA: Running optimizer...")
-        raw_solution = run_rqaoa_optimizer(qubo_dict, num_variables=n_total)
+        raw_solution = run_rqaoa_optimizer(qubo_dict, num_variables=n_total, use_ibm=use_ibm)
 
         # Extract only task bits (first n_tasks indices)
         task_assignment_int = {
@@ -332,6 +334,7 @@ def run_benchmarks(
     dry_run: bool = False,
     scale_factor: float = 1.0,
     schedulers: List[str] = None,
+    use_ibm: bool = False,
 ) -> List[Dict]:
     """Run all schedulers through the full pipeline and save results.
 
@@ -339,6 +342,7 @@ def run_benchmarks(
         dry_run: If True, skip actual subprocess execution.
         scale_factor: Scale factor for task memory sizes.
         schedulers: List of scheduler names to run. Defaults to all 5.
+        use_ibm: Run RQAOA on real IBM Quantum hardware if True.
 
     Returns:
         List of summary dicts for each scheduler.
@@ -378,7 +382,7 @@ def run_benchmarks(
         t0 = time.perf_counter()
         try:
             assignment = _get_scheduler_assignment(
-                scheduler_name, tasks, dram_cap, cxl_cap,
+                scheduler_name, tasks, dram_cap, cxl_cap, use_ibm=use_ibm
             )
         except Exception as exc:
             logger.error(
@@ -491,12 +495,18 @@ def main() -> None:
         choices=["fcfs", "rr", "greedy", "greedy_priority", "rqaoa"],
         help="Specific schedulers to run (default: all).",
     )
+    parser.add_argument(
+        "--use-ibm",
+        action="store_true",
+        help="Run RQAOA on actual IBM Quantum hardware (requires IBM_QUANTUM_TOKEN in .env).",
+    )
     args = parser.parse_args()
 
     run_benchmarks(
         dry_run=args.dry_run,
         scale_factor=args.scale_factor,
         schedulers=args.schedulers,
+        use_ibm=args.use_ibm,
     )
 
 

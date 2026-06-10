@@ -53,6 +53,11 @@ def main() -> None:
         default=1.0,
         help="Scale factor for task memory sizes (default: 1.0). Use 0.1 for quick simulation.",
     )
+    parser.add_argument(
+        "--use-ibm",
+        action="store_true",
+        help="Run RQAOA on actual IBM Quantum hardware (requires IBM_QUANTUM_TOKEN in .env).",
+    )
     args = parser.parse_args()
 
     logger.info("=" * 60)
@@ -70,6 +75,7 @@ def main() -> None:
             dry_run=args.dry_run,
             scale_factor=args.scale_factor,
             schedulers=schedulers_to_run,
+            use_ibm=args.use_ibm,
         )
         
         if all_summaries:
