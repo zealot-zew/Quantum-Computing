@@ -11,9 +11,17 @@ Maintained by: Hari (P2 — Infra + Quantum Algo)
 """
 
 import logging
-from typing import Dict
+import os
+from typing import Dict, Any
 
-from src.rqaoa.rqaoa_config import RQAOA_LAYERS, SHOTS
+from dotenv import load_dotenv
+from src.rqaoa.rqaoa_config import (
+    RQAOA_LAYERS,
+    SHOTS,
+    FALLBACK_CXL_BUDGET_MB,
+    DEFAULT_FALLBACK_TASK_SIZE_MB,
+    IBM_DEVICE_NAME
+)
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +48,9 @@ def _build_openqaoa_qubo_object(qubo_dict: dict, num_variables: int):
     Returns:
         openqaoa.problems.QUBO object
     """
-    from openqaoa.problems import QUBO as OQ_QUBO
+    from openqaoa.problems import QUBO as OQ_QUBO  # type: ignore
 
-    terms   = []
+    terms = []
     weights = []
 
     for (i, j), coeff in qubo_dict.items():
@@ -55,7 +63,7 @@ def _build_openqaoa_qubo_object(qubo_dict: dict, num_variables: int):
     return OQ_QUBO(n=num_variables, terms=terms, weights=weights)
 
 
-def _extract_assignment_from_result(result, num_variables: int) -> dict:
+def _extract_assignment_from_result(result: Any, num_variables: int) -> dict:
     """
     Extracts the best assignment from an RQAOAResult object.
 
@@ -92,26 +100,54 @@ def _extract_assignment_from_result(result, num_variables: int) -> dict:
     return assignment
 
 
-def run_rqaoa_optimizer(qubo_dict: dict, num_variables: int) -> Dict[int, int]:
+def run_rqaoa_optimizer(
+    qubo_dict: dict,
+    num_variables: int,
+    use_ibm: bool = False
+) -> Dict[int, int]:
     """
     Runs RQAOA and returns the optimal variable assignment.
 
     Args:
         qubo_dict:     {(i,j): coefficient} from qubo_converter.py
         num_variables: number of binary variables (= number of tasks)
+        use_ibm:       if True, attempt to run on IBM Quantum backend
 
     Returns:
         Dict {variable_index: 0 (DRAM) or 1 (CXL)}
     """
     try:
-        from openqaoa import RQAOA
-        from openqaoa.backends import create_device
+        from openqaoa import RQAOA  # type: ignore
+        from openqaoa.backends import create_device  # type: ignore
 
         cutoff = CUTOFF_BY_SIZE.get(num_variables, max(3, num_variables // 4))
         logger.info(f"RQAOA: {num_variables} vars | p={RQAOA_LAYERS} | cutoff={cutoff}")
 
         rqaoa_solver = RQAOA()
-        device = create_device(location="local", name="vectorized")
+
+        device = None
+        if use_ibm:
+            load_dotenv()
+            token = os.getenv("IBM_QUANTUM_TOKEN")
+            if token:
+                from qiskit_ibm_provider import IBMProvider  # type: ignore
+                try:
+                    IBMProvider.save_account(token=token, overwrite=True)
+                    logger.info("Saved IBM Quantum token.")
+                except Exception as e:
+                    logger.warning(f"Could not save IBM Quantum token: {e}")
+
+                device = create_device(location="ibmq", name=IBM_DEVICE_NAME)
+                logger.info(f"Configured IBM Quantum device: {IBM_DEVICE_NAME}")
+            else:
+                logger.warning(
+                    "IBM_QUANTUM_TOKEN not found in environment. "
+                    "Falling back to local vectorized simulator."
+                )
+
+        if device is None:
+            device = create_device(location="local", name="vectorized")
+
         rqaoa_solver.set_device(device)
         rqaoa_solver.set_circuit_properties(p=RQAOA_LAYERS, init_type="ramp")
         rqaoa_solver.set_classical_optimizer(method="cobyla", maxiter=200)
@@ -142,21 +178,21 @@ def _greedy_fallback(qubo_dict: dict, num_variables: int) -> Dict[int, int]:
     logger.warning("GREEDY FALLBACK ACTIVE — result is NOT quantum!")
 
     diagonal_costs = {i: qubo_dict.get((i, i), 0.0) for i in range(num_variables)}
-    sorted_tasks   = sorted(diagonal_costs.items(), key=lambda x: x[1], reverse=True)
+    sorted_tasks = sorted(diagonal_costs.items(), key=lambda x: x[1], reverse=True)
 
     assignment: Dict[int, int] = {}
-    cxl_budget: float = 4096.0
+    cxl_budget: float = FALLBACK_CXL_BUDGET_MB
 
     try:
-        from rqaoa.qubo_builder import DEFAULT_TASKS, TASKS_12, TASKS_16
+        from src.rqaoa.qubo_builder import DEFAULT_TASKS, TASKS_12, TASKS_16
         all_tasks = DEFAULT_TASKS + [t for t in TASKS_12 if t.task_id >= 8] \
                                   + [t for t in TASKS_16 if t.task_id >= 12]
         sizes = {t.task_id: t.memory_requirement_mb for t in all_tasks}
     except ImportError:
-        sizes = {i: 200.0 for i in range(num_variables)}
+        sizes = {i: DEFAULT_FALLBACK_TASK_SIZE_MB for i in range(num_variables)}
 
     for task_id, _cost in sorted_tasks:
-        size = sizes.get(task_id, 200.0)
+        size = sizes.get(task_id, DEFAULT_FALLBACK_TASK_SIZE_MB)
         if cxl_budget >= size:
             assignment[task_id] = 1   # CXL
             cxl_budget -= size

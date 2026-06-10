@@ -96,3 +96,4 @@
 - **2026-06-06**: Documentation standardisation pass — `Agents.md` slimmed, math extracted, per-module READMEs created, `graphs.py` and `main.py` cleaned up to comply with code standards.
 - **2026-06-08**: Started P2 Day 3 work. Implemented RQAOA bitstring decoding, optional CXL bandwidth throttling, orchestrator pass-through, and focused tests.
 - **2026-06-08**: Completed cleanup pass for repo-level checks. `flake8 src/ --max-line-length=100`, `mypy src/`, `pytest tests/`, `pytest test_schedulers.py`, and full `pytest` discovery now pass.
+- **2026-06-10**: Completed Day 5 RQAOA IBM Quantum integration. Added dotenv logic to read `IBM_QUANTUM_TOKEN` and fallback mechanics. Fixed all linting and mypy typing errors in `src/rqaoa/` and `src/executor/`. Drafted `docs/noise_effects.md` explaining QPU bit-flip noise vs Aer simulation.
