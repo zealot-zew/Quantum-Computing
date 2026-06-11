@@ -1,4 +1,5 @@
 # Agents.md — Project Intelligence File
+
 ## Quantum-Assisted Optimization Engine for CXL-Aware Hybrid Scheduling
 
 > **Read this file first.** It tells you the rules, the file map, and the current project state.
@@ -9,13 +10,13 @@
 
 ## 👥 Team & Ownership
 
-| Person | Role | Owns |
-|--------|------|------|
-| **Anjana** (P1) | Quantum Algo + Infra | `src/rqaoa/`, QUBO math, IBM Quantum |
-| **Hari** (P2) | Infra + Quantum Algo | `task_runner.py`, `src/executor/`, RQAOA config |
-| **Smarth** (P3) | Classical Scheduler + Simulation | `src/scheduler/` (FCFS, RR, Greedy), latency injection |
-| **Vikas** (P4) | Evaluation + Classical Scheduler | `src/evaluation/`, `greedy_priority_scheduler.py`, plots |
-| **Devandra** (P5) | Docs + Integration Lead | `main.py`, `README.md`, daily merges |
+| Person            | Role                             | Owns                                                     |
+| ----------------- | -------------------------------- | -------------------------------------------------------- |
+| **Anjana** (P1)   | Quantum Algo + Infra             | `src/rqaoa/`, QUBO math, IBM Quantum                     |
+| **Hari** (P2)     | Infra + Quantum Algo             | `task_runner.py`, `src/executor/`, RQAOA config          |
+| **Smarth** (P3)   | Classical Scheduler + Simulation | `src/scheduler/` (FCFS, RR, Greedy), latency injection   |
+| **Vikas** (P4)    | Evaluation + Classical Scheduler | `src/evaluation/`, `greedy_priority_scheduler.py`, plots |
+| **Devandra** (P5) | Docs + Integration Lead          | `main.py`, `README.md`, daily merges                     |
 
 ---
 
@@ -67,7 +68,7 @@ quantum-cxl-scheduler/
 
 ## 🌿 Git Rules (MANDATORY)
 
-1. **Never commit or push without explicit user permission.**
+1. **Batch your commits logically.** You do not need to commit every single edit or ask for explicit user permission before committing. Wait until a logical chunk of work is complete, then commit.
 2. **Never commit to `main` or `master`.** Always use a feature branch:
    ```bash
    git checkout -b feature/<short-description>
@@ -96,12 +97,12 @@ quantum-cxl-scheduler/
 
 ### Naming
 
-| Context | Convention | Example |
-|---------|-----------|---------|
-| Variables / Functions | `snake_case` | `qubo_matrix`, `run_rqaoa` |
-| Classes | `PascalCase` | `QuantumScheduler` |
-| Constants | `SCREAMING_SNAKE` | `DRAM_LATENCY_NS = 100` |
-| Private methods | `_leading_underscore` | `_build_hamiltonian()` |
+| Context               | Convention            | Example                    |
+| --------------------- | --------------------- | -------------------------- |
+| Variables / Functions | `snake_case`          | `qubo_matrix`, `run_rqaoa` |
+| Classes               | `PascalCase`          | `QuantumScheduler`         |
+| Constants             | `SCREAMING_SNAKE`     | `DRAM_LATENCY_NS = 100`    |
+| Private methods       | `_leading_underscore` | `_build_hamiltonian()`     |
 
 ### Non-Negotiables
 
@@ -151,23 +152,28 @@ except subprocess.CalledProcessError as e:
 # Project Progress Summary
 
 ## 📌 Active Context
+
 - **Current Branch:** `feature/<name>`
 - **Latest Update:** YYYY-MM-DD
 - **Active Developer/Agent:** <name>
 
 ## 🚀 Active Goals & Roadmap
+
 - [ ] Pending goal
 - [x] Completed goal
 
 ## 📊 Module Status
-| Module | Status | Notes |
-|--------|--------|-------|
-| src/rqaoa/ | 🔲 Stub | ... |
+
+| Module     | Status  | Notes |
+| ---------- | ------- | ----- |
+| src/rqaoa/ | 🔲 Stub | ...   |
 
 ## 📁 Files Created or Modified
+
 - `path/to/file.py`: What changed
 
 ## 📝 Recent Activity Log
+
 - **YYYY-MM-DD**: What was done
 ```
 
@@ -175,10 +181,10 @@ except subprocess.CalledProcessError as e:
 
 ## 🔗 Key References
 
-| Document | Purpose |
-|----------|---------|
-| `docs/math_foundations.md` | Full Ising/QUBO/QAOA/RQAOA math |
-| `Team_Sprint_5People_7Days.md` | Day-by-day sprint plan with checkboxes |
-| `docs/numa_verification.md` | Why hardware NUMA is unavailable; software simulation decision |
-| `progress_summary.md` | Current project state (always up to date) |
-| `src/*/README.md` | Per-module file map, status, and owner |
+| Document                       | Purpose                                                        |
+| ------------------------------ | -------------------------------------------------------------- |
+| `docs/math_foundations.md`     | Full Ising/QUBO/QAOA/RQAOA math                                |
+| `Team_Sprint_5People_7Days.md` | Day-by-day sprint plan with checkboxes                         |
+| `docs/numa_verification.md`    | Why hardware NUMA is unavailable; software simulation decision |
+| `progress_summary.md`          | Current project state (always up to date)                      |
+| `src/*/README.md`              | Per-module file map, status, and owner                         |

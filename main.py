@@ -9,17 +9,19 @@ Usage:
     python main.py --scheduler fcfs
     python main.py --scheduler rr
     python main.py --scheduler greedy
+    python main.py --scheduler greedy_priority
     python main.py --scheduler rqaoa
     python main.py --scheduler all   # Run all schedulers sequentially
-
-Status:
-    Scaffold only — CLI args work. Full pipeline wired on Day 5 by Devandra (P5).
-
-Maintained by: Devandra (P5 — Documentation & Integration Lead)
+    python main.py --scheduler fcfs --dry-run  # Run without actual task execution
 """
 
 import argparse
 import logging
+import os
+import sys
+
+from run_benchmarks import run_benchmarks
+from src.evaluation.graphs import generate_all_plots
 
 logging.basicConfig(
     level=logging.INFO,
@@ -36,15 +38,59 @@ def main() -> None:
     parser.add_argument(
         "--scheduler",
         type=str,
-        choices=["fcfs", "rr", "greedy", "rqaoa", "all"],
+        choices=["fcfs", "rr", "greedy", "greedy_priority", "rqaoa", "all"],
         required=True,
-        help="Scheduler to run: fcfs | rr | greedy | rqaoa | all",
+        help="Scheduler to run: fcfs | rr | greedy | greedy_priority | rqaoa | all",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Skip actual subprocess execution (print commands only).",
+    )
+    parser.add_argument(
+        "--scale-factor",
+        type=float,
+        default=1.0,
+        help="Scale factor for task memory sizes (default: 1.0). Use 0.1 for quick simulation.",
+    )
+    parser.add_argument(
+        "--use-ibm",
+        action="store_true",
+        help="Run RQAOA on actual IBM Quantum hardware (requires IBM_QUANTUM_TOKEN in .env).",
     )
     args = parser.parse_args()
 
-    logger.info("Scheduler selected: %s", args.scheduler)
-    logger.info("Pipeline not yet wired — will be completed on Day 5.")
-    logger.info("Scaffold confirmed working. ✓")
+    logger.info("=" * 60)
+    logger.info("Quantum-Assisted CXL-Aware Scheduler Pipeline")
+    logger.info("=" * 60)
+
+    schedulers_to_run = (
+        ["fcfs", "rr", "greedy", "greedy_priority", "rqaoa"]
+        if args.scheduler == "all"
+        else [args.scheduler]
+    )
+
+    try:
+        all_summaries = run_benchmarks(
+            dry_run=args.dry_run,
+            scale_factor=args.scale_factor,
+            schedulers=schedulers_to_run,
+            use_ibm=args.use_ibm,
+        )
+        
+        if all_summaries:
+            logger.info("Generating evaluation plots...")
+            results_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
+            summary_csv = os.path.join(results_dir, "all_schedulers_summary.csv")
+            plots_dir = os.path.join(results_dir, "plots")
+            
+            generate_all_plots(summary_csv, plots_dir)
+            logger.info(f"Plots saved to {plots_dir}")
+
+        logger.info("Pipeline completed successfully. ✓")
+    except Exception as exc:
+        logger.error("Pipeline failed: %s", exc)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

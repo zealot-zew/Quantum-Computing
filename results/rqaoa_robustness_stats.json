@@ -1,0 +1,13 @@
+{
+  "n_runs": 5,
+  "optimal_cost": 240469.4479,
+  "worst_cost": 2425720.0,
+  "cost_mean": 263341.726,
+  "cost_std": 23450.738,
+  "cost_min": 240469.4479,
+  "cost_max": 295950.8384,
+  "quality_mean_pct": 98.95,
+  "quality_std_pct": 1.07,
+  "dram_mean": 3.6,
+  "dram_std": 0.8
+}
