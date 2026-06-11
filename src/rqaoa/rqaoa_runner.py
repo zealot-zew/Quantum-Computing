@@ -1,11 +1,8 @@
 """
-rqaoa_runner.py — Runs RQAOA on a QUBO problem.
-
-Uses OpenQAOA + local vectorized simulator. Supports 8, 12, and 16
-task sizes with recursive cutoff tuned per problem size.
-Falls back to a greedy assignment if OpenQAOA is unavailable or fails.
-
-Variable convention: 0 = DRAM, 1 = CXL
+changed
+rqaoa_runner.py — RQAOA optimizer.
+Variable convention: 0 = DRAM, 1 = CXL.
+"""
 
 Maintained by: Hari (P2 — Infra + Quantum Algo)
 """
@@ -25,96 +22,77 @@ from src.rqaoa.rqaoa_config import (
 
 logger = logging.getLogger(__name__)
 
-CUTOFF_BY_SIZE: dict = {
-    19: 8,   # 8 tasks + 11 slack bits
-    23: 10,   # 12 tasks + 11 slack bits
-    27: 12,   # 16 tasks + 12 slack bits
-}
+CUTOFF_BY_SIZE: dict = {8: 2, 12: 2, 16: 3}
 
 
 def _build_openqaoa_qubo_object(qubo_dict: dict, num_variables: int):
-    """
-    Converts QUBO dict to OpenQAOA QUBO object.
-
-    OpenQAOA QUBO.__init__ expects:
-      n:       number of variables
-      terms:   list of lists — [i] for diagonal, [i,j] for off-diagonal
-      weights: list of floats, same length as terms
-
-    Args:
-        qubo_dict:     {(i, j): coefficient} from qubo_converter.py
-        num_variables: total number of binary variables
-
-    Returns:
-        openqaoa.problems.QUBO object
-    """
-    from openqaoa.problems import QUBO as OQ_QUBO  # type: ignore
-
-    terms = []
-    weights = []
-
+    """Converts QUBO dict to OpenQAOA QUBO object using terms/weights constructor."""
+    from openqaoa.problems import QUBO as OQ_QUBO
+    terms, weights = [], []
     for (i, j), coeff in qubo_dict.items():
-        if i == j:
-            terms.append([i])
-        else:
-            terms.append([i, j])
+        terms.append([i] if i == j else [i, j])
         weights.append(float(coeff))
-
     return OQ_QUBO(n=num_variables, terms=terms, weights=weights)
 
 
-def _extract_assignment_from_result(result: Any, num_variables: int) -> dict:
+def _extract_best_solution(result, num_variables: int) -> dict:
     """
-    Extracts the best assignment from an RQAOAResult object.
+    Extracts the best assignment from RQAOAResult.
 
-    RQAOAResult is dict-like. The solution is in result['solution'],
-    which is a dict of {bitstring: energy}. We take the bitstring
-    with the lowest (most negative) energy.
+    OpenQAOA stores results differently across versions:
+      - Newer: result.best_solution  -> {var_index: 0_or_1}
+      - Older: result['solution']    -> {'bitstring': energy, ...}
+                bitstring is MSB-first so variable 0 = rightmost character.
 
-    Args:
-        result:        RQAOAResult object from rqaoa_solver.result
-        num_variables: expected number of variables
-
-    Returns:
-        Dict {variable_index: 0 (DRAM) or 1 (CXL)}
+    We try both, then fall back to reading the lowest-energy bitstring.
     """
-    solution_dict = result['solution']
+    # Attempt 1: attribute access (newer OpenQAOA)
+    if hasattr(result, "best_solution") and result.best_solution:
+        logger.info("Using result.best_solution")
+        return {int(k): int(v) for k, v in result.best_solution.items()}
 
-    # Pick the bitstring with the lowest energy value
-    best_bitstring = min(solution_dict, key=lambda k: solution_dict[k])
-    best_energy = solution_dict[best_bitstring]
-    logger.info(
-        "Best bitstring: %s (energy: %.4f)", best_bitstring, best_energy
+    # Attempt 2: dict-style access (older OpenQAOA)
+    try:
+        solution_dict = result["solution"]
+        best_bs = min(solution_dict, key=lambda k: solution_dict[k])
+        logger.info(f"Using result['solution'], best bitstring: {best_bs}")
+        padded = best_bs.zfill(num_variables)
+        # Variable 0 = rightmost character (MSB-first convention)
+        return {i: int(padded[-(i + 1)]) for i in range(num_variables)}
+    except (KeyError, TypeError):
+        pass
+
+    # Attempt 3: result.optimized_results (some intermediate versions)
+    try:
+        sol = result.optimized_results
+        best_bs = min(sol, key=lambda k: sol[k])
+        logger.info(f"Using result.optimized_results, best bitstring: {best_bs}")
+        padded = best_bs.zfill(num_variables)
+        return {i: int(padded[-(i + 1)]) for i in range(num_variables)}
+    except (AttributeError, TypeError):
+        pass
+
+    raise RuntimeError(
+        f"Cannot extract solution from RQAOAResult. "
+        f"Available attributes: {[a for a in dir(result) if not a.startswith('_')]}"
     )
-
-    # Convert bitstring to assignment dict
-    # Pad with zeros on the left if shorter than num_variables
-    padded = best_bitstring.zfill(num_variables)
-    assignment: Dict[int, int] = {
-        i: int(padded[i])
-        for i in range(num_variables)
-    }
-
-    logger.debug("Solution dict: %s", solution_dict)
-    logger.debug("Assignment: %s", assignment)
-    return assignment
 
 
 def run_rqaoa_optimizer(
-    qubo_dict: dict,
-    num_variables: int,
-    use_ibm: bool = False
-) -> Dict[int, int]:
+    qubo_dict:        dict,
+    num_variables:    int,
+    dram_capacity_mb: float = 1956.0,
+) -> dict:
     """
-    Runs RQAOA and returns the optimal variable assignment.
+    Runs RQAOA and returns the variable assignment.
 
     Args:
-        qubo_dict:     {(i,j): coefficient} from qubo_converter.py
-        num_variables: number of binary variables (= number of tasks)
-        use_ibm:       if True, attempt to run on IBM Quantum backend
+        qubo_dict:        {(i,j): coefficient} from qubo_converter.
+        num_variables:    Number of binary variables (= number of tasks).
+        dram_capacity_mb: Passed to fallback if RQAOA fails.
 
     Returns:
-        Dict {variable_index: 0 (DRAM) or 1 (CXL)}
+        {variable_index: 0 (DRAM) or 1 (CXL)}
     """
     try:
         from openqaoa import RQAOA  # type: ignore
@@ -157,45 +135,53 @@ def run_rqaoa_optimizer(
         oq_qubo = _build_openqaoa_qubo_object(qubo_dict, num_variables)
         rqaoa_solver.compile(oq_qubo)
 
-        logger.info("Optimising... (2-8 min depending on size)")
+        logger.info("Optimising... (2-8 min)")
         rqaoa_solver.optimize()
 
-        return _extract_assignment_from_result(rqaoa_solver.result, num_variables)
+        assignment = _extract_best_solution(rqaoa_solver.result, num_variables)
+        logger.info(f"Raw assignment from RQAOA: {assignment}")
+        return assignment
 
-    except ImportError as exc:
-        logger.error("OpenQAOA import error: %s", exc)
-        return _greedy_fallback(qubo_dict, num_variables)
-    except Exception as exc:
-        logger.error("RQAOA failed: %s", exc)
-        return _greedy_fallback(qubo_dict, num_variables)
+    except ImportError as e:
+        logger.error(f"OpenQAOA import error: {e}")
+        return _greedy_fallback(qubo_dict, num_variables, dram_capacity_mb)
+    except Exception as e:
+        print(f"  [RQAOA FAILED SILENTLY]: {e}")
+        return _greedy_fallback(qubo_dict, num_variables, dram_capacity_mb)
 
 
-def _greedy_fallback(qubo_dict: dict, num_variables: int) -> Dict[int, int]:
+def _greedy_fallback(
+    qubo_dict:        dict,
+    num_variables:    int,
+    dram_capacity_mb: float,
+) -> dict:
     """
-    Sensitivity-based greedy fallback. NOT a quantum result.
-    Used only when OpenQAOA fails.
+    Sensitivity-based greedy. NOT quantum. Used only when OpenQAOA fails.
+    High diagonal = high sensitivity = assign to DRAM first.
     """
     logger.warning("GREEDY FALLBACK ACTIVE — result is NOT quantum!")
 
     diagonal_costs = {i: qubo_dict.get((i, i), 0.0) for i in range(num_variables)}
-    sorted_tasks = sorted(diagonal_costs.items(), key=lambda x: x[1], reverse=True)
+    sorted_vars    = sorted(diagonal_costs.items(), key=lambda x: x[1], reverse=True)
 
-    assignment: Dict[int, int] = {}
-    cxl_budget: float = FALLBACK_CXL_BUDGET_MB
+    assignment:  dict  = {}
+    dram_budget: float = dram_capacity_mb
 
     try:
-        from src.rqaoa.qubo_builder import DEFAULT_TASKS, TASKS_12, TASKS_16
-        all_tasks = DEFAULT_TASKS + [t for t in TASKS_12 if t.task_id >= 8] \
-                                  + [t for t in TASKS_16 if t.task_id >= 12]
+        from rqaoa.qubo_builder import DEFAULT_TASKS, TASKS_12, TASKS_16
+        all_tasks = (DEFAULT_TASKS
+                     + [t for t in TASKS_12 if t.task_id >= 8]
+                     + [t for t in TASKS_16 if t.task_id >= 12])
         sizes = {t.task_id: t.memory_requirement_mb for t in all_tasks}
     except ImportError:
-        sizes = {i: DEFAULT_FALLBACK_TASK_SIZE_MB for i in range(num_variables)}
+        sizes = {}
 
-    for task_id, _cost in sorted_tasks:
-        size = sizes.get(task_id, DEFAULT_FALLBACK_TASK_SIZE_MB)
-        if cxl_budget >= size:
-            assignment[task_id] = 1   # CXL
-            cxl_budget -= size
+    for var_id, _cost in sorted_vars:
+        size = sizes.get(var_id, 200.0)
+        if dram_budget >= size:
+            assignment[var_id] = 0
+            dram_budget -= size
         else:
-            assignment[task_id] = 0   # DRAM
+            assignment[var_id] = 1
+
     return assignment
