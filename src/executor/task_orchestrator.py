@@ -18,8 +18,9 @@ import logging
 import subprocess
 import sys
 import time
+import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Set
 
 from src.scheduler.task_model import Task
 
@@ -45,12 +46,35 @@ TASK_RUNNER_PATH: Path = Path(__file__).parents[2] / "task_runner.py"
 # This ensures the same .venv is used inside the subprocess.
 PYTHON_EXECUTABLE: str = sys.executable
 
+# Discover available NUMA nodes to avoid numactl crashes if a node is missing.
+AVAILABLE_NUMA_NODES: Set[int] = set()
+try:
+    _numa_out = subprocess.check_output(
+        ["numactl", "--hardware"], text=True, stderr=subprocess.DEVNULL
+    )
+    for _line in _numa_out.splitlines():
+        if _line.startswith("node ") and " size:" in _line:
+            _match = re.match(r"node (\d+) size:", _line)
+            if _match:
+                AVAILABLE_NUMA_NODES.add(int(_match.group(1)))
+except (FileNotFoundError, subprocess.CalledProcessError):
+    pass
+
+if not AVAILABLE_NUMA_NODES:
+    logger.info("numactl unavailable or no nodes detected. Using software latency simulation only.")
+else:
+    logger.info("Detected hardware NUMA nodes: %s", AVAILABLE_NUMA_NODES)
+
 
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _build_command(task: Task, node: int) -> List[str]:
+def _build_command(
+    task: Task,
+    node: int,
+    bandwidth_limit_mb_s: Optional[float] = None,
+) -> List[str]:
     """
     Build the subprocess command list for a single task.
 
@@ -68,6 +92,8 @@ def _build_command(task: Task, node: int) -> List[str]:
     Args:
         task: A Task object from src/scheduler/task_model.py.
         node: NUMA node integer (0=DRAM, 1=CXL).
+        bandwidth_limit_mb_s: Optional CXL bandwidth cap in MiB/s. Added only
+                              for CXL commands because DRAM tasks are unthrottled.
 
     Returns:
         List of strings representing the shell command and its arguments.
@@ -79,13 +105,22 @@ def _build_command(task: Task, node: int) -> List[str]:
         "--memory-mb", str(task.memory_requirement_mb),
         "--node", str(node),
     ]
-    numactl_prefix: List[str] = [
-        "numactl",
-        f"--cpunodebind={node}",
-        f"--membind={node}",
-        "--",  # separates numactl flags from the wrapped command
-    ]
-    return numactl_prefix + task_runner_args
+    if node == 1 and bandwidth_limit_mb_s is not None:
+        task_runner_args.extend([
+            "--bandwidth-limit",
+            str(bandwidth_limit_mb_s),
+        ])
+
+    if node in AVAILABLE_NUMA_NODES:
+        numactl_prefix: List[str] = [
+            "numactl",
+            f"--cpunodebind={node}",
+            f"--membind={node}",
+            "--",  # separates numactl flags from the wrapped command
+        ]
+        return numactl_prefix + task_runner_args
+    else:
+        return task_runner_args
 
 
 def _parse_csv_output(raw_stdout: str, task_id: int) -> Dict:
@@ -140,6 +175,7 @@ def run_all_tasks(
     assignment: Dict[int, str],
     tasks: List[Task],
     dry_run: bool = False,
+    bandwidth_limit_mb_s: Optional[float] = None,
 ) -> List[Dict]:
     """
     Launch all tasks as concurrent subprocesses with NUMA binding.
@@ -164,6 +200,8 @@ def run_all_tasks(
                     Used to look up each task's memory_requirement_mb.
         dry_run:    If True, print commands to logger but do not execute.
                     Useful for testing and CI environments without numactl.
+        bandwidth_limit_mb_s: Optional CXL bandwidth cap in MiB/s, passed to
+                              task_runner.py only for tasks assigned to CXL.
 
     Returns:
         List of per-task result dicts. Each dict contains:
@@ -178,14 +216,17 @@ def run_all_tasks(
     Raises:
         ValueError: If a task_id in assignment has no matching Task object.
     """
+    if bandwidth_limit_mb_s is not None and bandwidth_limit_mb_s <= 0:
+        raise ValueError("bandwidth_limit_mb_s must be positive when provided.")
+
     # Build a lookup from task_id → Task object for fast access
     task_lookup: Dict[int, Task] = {t.task_id: t for t in tasks}
 
     # Validate that every task_id in the assignment exists in our task list
-    for task_id in assignment:
-        if task_id not in task_lookup:
+    for assigned_task_id in assignment:
+        if assigned_task_id not in task_lookup:
             raise ValueError(
-                f"task_id={task_id} in assignment not found in tasks list."
+                f"task_id={assigned_task_id} in assignment not found in tasks list."
             )
 
     # -------------------------------------------------------------------------
@@ -198,20 +239,20 @@ def run_all_tasks(
         "Launching %d tasks concurrently (dry_run=%s)...", len(assignment), dry_run
     )
 
-    for task_id, tier in assignment.items():
-        task: Task = task_lookup[task_id]
+    for assigned_task_id, tier in assignment.items():
+        task: Task = task_lookup[assigned_task_id]
         node: int = TIER_TO_NODE[tier]
-        cmd: List[str] = _build_command(task, node)
+        cmd: List[str] = _build_command(task, node, bandwidth_limit_mb_s)
 
         logger.info(
             "  Task %d → %s (node %d) | cmd: %s",
-            task_id, tier, node, " ".join(cmd)
+            assigned_task_id, tier, node, " ".join(cmd)
         )
 
         if dry_run:
             # In dry-run mode we record the intended command but don't run it
             running_processes.append({
-                "task_id": task_id,
+                "task_id": assigned_task_id,
                 "assigned_tier": tier,
                 "node": node,
                 "process": None,
@@ -222,7 +263,7 @@ def run_all_tasks(
         # Try to launch with numactl. If numactl is not installed (e.g. macOS,
         # or a Linux VM without the package), fall back to launching without it.
         try:
-            proc = subprocess.Popen(
+            launched_proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,  # capture CSV result line
                 stderr=subprocess.PIPE,  # capture log messages separately
@@ -231,10 +272,11 @@ def run_all_tasks(
         except FileNotFoundError:
             # numactl not found — strip the numactl prefix and retry
             logger.warning(
-                "numactl not found. Running task %d without NUMA binding.", task_id
+                "numactl not found. Running task %d without NUMA binding.",
+                assigned_task_id,
             )
             fallback_cmd = cmd[4:]  # skip: numactl --cpunodebind=N --membind=N --
-            proc = subprocess.Popen(
+            launched_proc = subprocess.Popen(
                 fallback_cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -242,10 +284,10 @@ def run_all_tasks(
             )
 
         running_processes.append({
-            "task_id": task_id,
+            "task_id": assigned_task_id,
             "assigned_tier": tier,
             "node": node,
-            "process": proc,
+            "process": launched_proc,
             "cmd": cmd,
         })
 
@@ -255,12 +297,12 @@ def run_all_tasks(
     results: List[Dict] = []
 
     for entry in running_processes:
-        task_id: int = entry["task_id"]
+        completed_task_id: int = entry["task_id"]
 
         if dry_run:
             logger.info("  [dry-run] Would have run: %s", " ".join(entry["cmd"]))
             results.append({
-                "task_id": task_id,
+                "task_id": completed_task_id,
                 "assigned_tier": entry["assigned_tier"],
                 "node": entry["node"],
                 "start_time_s": 0.0,
@@ -270,28 +312,28 @@ def run_all_tasks(
             })
             continue
 
-        proc: subprocess.Popen = entry["process"]
-        stdout_str, stderr_str = proc.communicate()  # .communicate() = wait + read IO
-        return_code: int = proc.returncode
+        completed_proc: subprocess.Popen = entry["process"]
+        stdout_str, stderr_str = completed_proc.communicate()
+        return_code: int = completed_proc.returncode
 
         # Forward subprocess log lines to our own logger so they appear in the
         # parent process's output — useful for debugging task failures.
         if stderr_str:
             for line in stderr_str.strip().split("\n"):
                 if line:
-                    logger.debug("  [task %d stderr] %s", task_id, line)
+                    logger.debug("  [task %d stderr] %s", completed_task_id, line)
 
         if return_code != 0:
             logger.error(
                 "Task %d exited with code %d. stderr: %s",
-                task_id, return_code, stderr_str.strip()
+                completed_task_id, return_code, stderr_str.strip()
             )
 
         # Parse the CSV line from stdout
-        timing = _parse_csv_output(stdout_str, task_id)
+        timing = _parse_csv_output(stdout_str, completed_task_id)
 
         result: Dict = {
-            "task_id": task_id,
+            "task_id": completed_task_id,
             "assigned_tier": entry["assigned_tier"],
             "node": entry["node"],
             "start_time_s": timing.get("start_time_s", 0.0),
@@ -302,7 +344,7 @@ def run_all_tasks(
         results.append(result)
         logger.info(
             "  Task %d done | tier=%s | duration=%.4f s | exit=%d",
-            task_id,
+            completed_task_id,
             entry["assigned_tier"],
             result["duration_s"],
             return_code,

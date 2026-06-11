@@ -3,6 +3,7 @@
 qubo_converter.py
 Converts numpy QUBO matrix to OpenQAOA dict format: {(i, j): coefficient}
 """
+qubo_converter.py
 
 import numpy as np
 

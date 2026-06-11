@@ -13,6 +13,7 @@ Maintained by: Vikas (P4 — Simulation & Evaluation Engineer)
 
 from typing import Dict, List
 
+from src.evaluation.metrics import calculate_latency_cost
 from src.scheduler.task_model import Task
 
 
@@ -108,12 +109,37 @@ class GreedyPriorityScheduler:
             ValueError: If total memory requirement exceeds combined
                         DRAM + CXL capacity.
         """
-        # TODO (Day 2): Implement scheduling logic following the algorithm above.
-        # Steps:
-        #   scored = sorted(tasks, key=self._composite_score, reverse=True)
-        #   Iterate scored; accumulate dram_used_mb; assign DRAM or CXL.
-        #   Return {task.task_id: tier for task, tier in zip(scored, tiers)}
-        pass
+        total_memory_mb = sum(task.memory_requirement_mb for task in tasks)
+        total_capacity_mb = self.dram_capacity_mb + self.cxl_capacity_mb
+        if total_memory_mb > total_capacity_mb:
+            raise ValueError(
+                f"Total memory requirement ({total_memory_mb:.1f} MB) exceeds "
+                f"total available capacity ({total_capacity_mb:.1f} MB)"
+            )
+
+        scored_tasks = sorted(tasks, key=self._composite_score, reverse=True)
+        assignment: Dict[int, str] = {}
+        dram_used_mb = 0.0
+        cxl_used_mb = 0.0
+
+        for task in scored_tasks:
+            if dram_used_mb + task.memory_requirement_mb <= self.dram_capacity_mb:
+                assignment[task.task_id] = "DRAM"
+                dram_used_mb += task.memory_requirement_mb
+            elif cxl_used_mb + task.memory_requirement_mb <= self.cxl_capacity_mb:
+                assignment[task.task_id] = "CXL"
+                cxl_used_mb += task.memory_requirement_mb
+            else:
+                remaining_dram_mb = self.dram_capacity_mb - dram_used_mb
+                remaining_cxl_mb = self.cxl_capacity_mb - cxl_used_mb
+                raise ValueError(
+                    f"Cannot fit task {task.task_id} "
+                    f"(requires {task.memory_requirement_mb:.1f} MB) into "
+                    f"remaining capacity (DRAM: {remaining_dram_mb:.1f} MB, "
+                    f"CXL: {remaining_cxl_mb:.1f} MB)"
+                )
+
+        return assignment
 
     def compute_total_cost(
         self,
@@ -133,6 +159,11 @@ class GreedyPriorityScheduler:
         Returns:
             Total weighted latency cost in nanosecond-megabyte units (ns·MB).
         """
-        # TODO (Day 2): Implement by calling metrics.calculate_latency_cost
-        # for each task and summing the results.
-        pass
+        total_cost = 0.0
+        for task in tasks:
+            total_cost += calculate_latency_cost(
+                memory_requirement_mb=task.memory_requirement_mb,
+                memory_sensitivity=task.memory_sensitivity,
+                assigned_tier=assignment[task.task_id],
+            )
+        return total_cost
