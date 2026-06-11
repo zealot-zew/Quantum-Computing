@@ -1,0 +1,24 @@
+{
+  "aer_simulator": {
+    "0": 1,
+    "1": 1,
+    "2": 1,
+    "3": 1
+  },
+  "ibm_qpu": {
+    "0": 1,
+    "1": 0,
+    "2": 1,
+    "3": 1
+  },
+  "task_indices": [
+    0,
+    2,
+    4,
+    6
+  ],
+  "variables_matching": 3,
+  "total_variables": 4,
+  "ibm_job_id": "d8ldb532d42s73cb99p0",
+  "ibm_backend_used": "ibm_fez"
+}

@@ -12,21 +12,21 @@ if src_path not in sys.path:
     sys.path.insert(0, src_path)
 
 PROJECT_ROOT  = os.path.dirname(src_path)
-IBM_BACKEND   = os.environ.get("IBM_BACKEND", "ibm_sherbrooke")
+IBM_BACKEND   = "ibm_frez"
 IBM_TASK_IDX  = [0, 2, 4, 6]   # sensitivities: 0.9, 0.8, 0.95, 0.7
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
-def build_reduced_qubo_for_ibm() -> dict:
+def build_reduced_qubo_for_ibm():
     from rqaoa.qubo_builder import build_qubo_from_tasks, DEFAULT_TASKS
     from rqaoa.qubo_converter import convert_numpy_qubo_to_openqaoa_dict
     tasks  = [DEFAULT_TASKS[i] for i in IBM_TASK_IDX]
     matrix = build_qubo_from_tasks(tasks)
     d      = convert_numpy_qubo_to_openqaoa_dict(matrix)
     logger.info(f"4-task QUBO ready: {len(d)} entries")
-    return d
+    return d, len(tasks), tasks   # ← return all three
 
 
 def run_aer_reference(qubo_dict: dict) -> dict:
