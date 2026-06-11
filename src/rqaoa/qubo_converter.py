@@ -1,10 +1,9 @@
 
 """
 qubo_converter.py
-
-Converts the numpy QUBO matrix from qubo_builder into the dict format
-that OpenQAOA's compile() method expects: {(i, j): coefficient}
+Converts numpy QUBO matrix to OpenQAOA dict format: {(i, j): coefficient}
 """
+qubo_converter.py
 
 import numpy as np
 
