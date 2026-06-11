@@ -18,8 +18,9 @@ import logging
 import subprocess
 import sys
 import time
+import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from src.scheduler.task_model import Task
 
@@ -44,6 +45,25 @@ TASK_RUNNER_PATH: Path = Path(__file__).parents[2] / "task_runner.py"
 # Python interpreter to use — same one running this process.
 # This ensures the same .venv is used inside the subprocess.
 PYTHON_EXECUTABLE: str = sys.executable
+
+# Discover available NUMA nodes to avoid numactl crashes if a node is missing.
+AVAILABLE_NUMA_NODES: Set[int] = set()
+try:
+    _numa_out = subprocess.check_output(
+        ["numactl", "--hardware"], text=True, stderr=subprocess.DEVNULL
+    )
+    for _line in _numa_out.splitlines():
+        if _line.startswith("node ") and " size:" in _line:
+            _match = re.match(r"node (\d+) size:", _line)
+            if _match:
+                AVAILABLE_NUMA_NODES.add(int(_match.group(1)))
+except (FileNotFoundError, subprocess.CalledProcessError):
+    pass
+
+if not AVAILABLE_NUMA_NODES:
+    logger.info("numactl unavailable or no nodes detected. Using software latency simulation only.")
+else:
+    logger.info("Detected hardware NUMA nodes: %s", AVAILABLE_NUMA_NODES)
 
 
 # ---------------------------------------------------------------------------
@@ -91,13 +111,16 @@ def _build_command(
             str(bandwidth_limit_mb_s),
         ])
 
-    numactl_prefix: List[str] = [
-        "numactl",
-        f"--cpunodebind={node}",
-        f"--membind={node}",
-        "--",  # separates numactl flags from the wrapped command
-    ]
-    return numactl_prefix + task_runner_args
+    if node in AVAILABLE_NUMA_NODES:
+        numactl_prefix: List[str] = [
+            "numactl",
+            f"--cpunodebind={node}",
+            f"--membind={node}",
+            "--",  # separates numactl flags from the wrapped command
+        ]
+        return numactl_prefix + task_runner_args
+    else:
+        return task_runner_args
 
 
 def _parse_csv_output(raw_stdout: str, task_id: int) -> Dict:

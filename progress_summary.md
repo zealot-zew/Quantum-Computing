@@ -19,8 +19,8 @@
 - [x] Day 3: RQAOA runner + result parser + full execution pipeline
 - [x] Day 4: Benchmarking, plots, CSV outputs
 - [x] Day 5: IBM Quantum run + code cleanup / linting pass
-- [ ] Day 6: Integration, `main.py` fully wired, report finalised
-- [ ] Day 7: Final testing, tag v1.0.0, submit
+- [x] Day 6: Integration, `main.py` fully wired, report finalised
+- [x] Day 7: Final testing, tag v1.0.0, submit
 
 ---
 
@@ -96,3 +96,7 @@
 - **2026-06-06**: Documentation standardisation pass — `Agents.md` slimmed, math extracted, per-module READMEs created, `graphs.py` and `main.py` cleaned up to comply with code standards.
 - **2026-06-08**: Started P2 Day 3 work. Implemented RQAOA bitstring decoding, optional CXL bandwidth throttling, orchestrator pass-through, and focused tests.
 - **2026-06-08**: Completed cleanup pass for repo-level checks. `flake8 src/ --max-line-length=100`, `mypy src/`, `pytest tests/`, `pytest test_schedulers.py`, and full `pytest` discovery now pass.
+- **2026-06-10**: Completed Day 5 RQAOA IBM Quantum integration. Added dotenv logic to read `IBM_QUANTUM_TOKEN` and fallback mechanics. Fixed all linting and mypy typing errors in `src/rqaoa/` and `src/executor/`. Drafted `docs/noise_effects.md` explaining QPU bit-flip noise vs Aer simulation.
+- **2026-06-10**: Completed Day 6 Integration & Reporting. Wired `main.py` to trigger full pipeline including automated plot generation via `src/evaluation/graphs.py`. Executed benchmark and generated plots/CSVs. Updated `quantum_scheduler/report.md` with final analysis, evaluation metrics, and noise effects discussion. Created root `README.md`.
+- **2026-06-10**: Verified the execution on AWS EC2 (`m7i-flex.large`). Encountered and resolved a dependency issue with `openqaoa` and `setuptools>=70` dropping `pkg_resources`. Tested the hardware NUMA capabilities and verified that the single-node nature of general-purpose EC2 instances prevents hard memory binding to CXL via `numactl`, validating our decision to fall back to software-based emulation.
+- **2026-06-10**: Ran full final unscaled simulation on AWS to capture realistic RQAOA heuristic behaviors on exact bin-packing. Re-generated plots and updated documentation to complete all Day 7 deliverables. Tagged as v1.0.0.

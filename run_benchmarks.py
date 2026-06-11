@@ -88,6 +88,7 @@ SUMMARY_HEADERS: List[str] = [
     "makespan_s",
     "total_latency_cost_ns",
     "avg_latency_cost_ns",
+    "scheduling_time_s",
 ]
 
 
@@ -121,6 +122,7 @@ def _get_scheduler_assignment(
     tasks: List[Task],
     dram_cap: float,
     cxl_cap: float,
+    use_ibm: bool = False,
 ) -> Dict[int, str]:
     """Run a single scheduler and return its assignment dict.
 
@@ -150,7 +152,7 @@ def _get_scheduler_assignment(
         return scheduler.schedule(tasks)
 
     elif scheduler_name == "rqaoa":
-        return _run_rqaoa_scheduler(tasks, dram_cap)
+        return _run_rqaoa_scheduler(tasks, dram_cap, use_ibm)
 
     else:
         raise ValueError(f"Unknown scheduler: {scheduler_name}")
@@ -159,6 +161,7 @@ def _get_scheduler_assignment(
 def _run_rqaoa_scheduler(
     tasks: List[Task],
     dram_cap: float,
+    use_ibm: bool = False,
 ) -> Dict[int, str]:
     """Run RQAOA optimizer and return a tier assignment dict.
 
@@ -178,6 +181,7 @@ def _run_rqaoa_scheduler(
             DEFAULT_TASKS,
             num_slack_bits,
             compute_dram_used,
+            DRAM_CAPACITY_MB as UNSCALED_DRAM_CAP,
         )
         from src.rqaoa.qubo_converter import convert_numpy_qubo_to_openqaoa_dict
         from src.rqaoa.rqaoa_runner import run_rqaoa_optimizer
@@ -187,18 +191,19 @@ def _run_rqaoa_scheduler(
         # because it has its own Task dataclass.
         qubo_tasks = DEFAULT_TASKS
         n_tasks = len(qubo_tasks)
-        n_slack = num_slack_bits(dram_cap)
+        n_slack = num_slack_bits(UNSCALED_DRAM_CAP)
         n_total = n_tasks + n_slack
 
         logger.info(
             "RQAOA: Building QUBO (%d tasks + %d slack = %d variables)...",
             n_tasks, n_slack, n_total,
         )
-        qubo_matrix = _build_qubo(qubo_tasks, dram_capacity_mb=dram_cap)
+        # Use unscaled DRAM cap to match the unscaled DEFAULT_TASKS
+        qubo_matrix = _build_qubo(qubo_tasks, dram_capacity_mb=UNSCALED_DRAM_CAP)
         qubo_dict = convert_numpy_qubo_to_openqaoa_dict(qubo_matrix)
 
         logger.info("RQAOA: Running optimizer...")
-        raw_solution = run_rqaoa_optimizer(qubo_dict, num_variables=n_total)
+        raw_solution = run_rqaoa_optimizer(qubo_dict, num_variables=n_total, use_ibm=use_ibm)
 
         # Extract only task bits (first n_tasks indices)
         task_assignment_int = {
@@ -223,6 +228,7 @@ def _compute_summary_row(
     tasks: List[Task],
     results: List[Dict],
     dram_cap: float,
+    scheduling_time_s: float,
 ) -> Dict:
     """Compute a single summary row for the aggregate CSV.
 
@@ -232,6 +238,7 @@ def _compute_summary_row(
         tasks: Task list.
         results: Per-task result dicts from the orchestrator.
         dram_cap: DRAM capacity for utilization calculation.
+        scheduling_time_s: Time taken to compute the assignment.
 
     Returns:
         Dict with all SUMMARY_HEADERS keys populated.
@@ -272,6 +279,7 @@ def _compute_summary_row(
         "makespan_s": round(makespan, 6),
         "total_latency_cost_ns": round(total_latency, 2),
         "avg_latency_cost_ns": round(avg_latency, 2),
+        "scheduling_time_s": round(scheduling_time_s, 4),
     }
 
 
@@ -282,20 +290,20 @@ def _print_comparison_table(summaries: List[Dict]) -> None:
         summaries: List of summary dicts (one per scheduler).
     """
     header_fmt = (
-        "{:<18} {:>6} {:>6} {:>10} {:>10} {:>10} {:>14}"
+        "{:<18} {:>6} {:>6} {:>10} {:>10} {:>10} {:>14} {:>10}"
     )
     row_fmt = (
-        "{:<18} {:>6} {:>6} {:>10.4f} {:>10.4f} {:>10.1f} {:>14.2f}"
+        "{:<18} {:>6} {:>6} {:>10.4f} {:>10.4f} {:>10.1f} {:>14.2f} {:>10.4f}"
     )
 
-    print("\n" + "=" * 90)
+    print("\n" + "=" * 105)
     print("SCHEDULER COMPARISON — All schedulers vs canonical 8-task set")
-    print("=" * 90)
+    print("=" * 105)
     print(header_fmt.format(
         "Scheduler", "DRAM", "CXL",
-        "Avg Time", "Makespan", "DRAM %", "Latency Cost",
+        "Avg Time", "Makespan", "DRAM %", "Latency Cost", "Sched Time"
     ))
-    print("-" * 90)
+    print("-" * 105)
 
     for s in summaries:
         print(row_fmt.format(
@@ -306,9 +314,10 @@ def _print_comparison_table(summaries: List[Dict]) -> None:
             s["makespan_s"],
             s["dram_utilization_pct"],
             s["total_latency_cost_ns"],
+            s["scheduling_time_s"],
         ))
 
-    print("=" * 90)
+    print("=" * 105)
 
     # Highlight best scheduler by latency cost
     best = min(summaries, key=lambda s: s["total_latency_cost_ns"])
@@ -325,6 +334,7 @@ def run_benchmarks(
     dry_run: bool = False,
     scale_factor: float = 1.0,
     schedulers: List[str] = None,
+    use_ibm: bool = False,
 ) -> List[Dict]:
     """Run all schedulers through the full pipeline and save results.
 
@@ -332,6 +342,7 @@ def run_benchmarks(
         dry_run: If True, skip actual subprocess execution.
         scale_factor: Scale factor for task memory sizes.
         schedulers: List of scheduler names to run. Defaults to all 5.
+        use_ibm: Run RQAOA on real IBM Quantum hardware if True.
 
     Returns:
         List of summary dicts for each scheduler.
@@ -368,15 +379,17 @@ def run_benchmarks(
         logger.info("=" * 60)
 
         # Step 1: Get assignment
+        t0 = time.perf_counter()
         try:
             assignment = _get_scheduler_assignment(
-                scheduler_name, tasks, dram_cap, cxl_cap,
+                scheduler_name, tasks, dram_cap, cxl_cap, use_ibm=use_ibm
             )
         except Exception as exc:
             logger.error(
                 "Scheduler '%s' failed: %s. Skipping.", scheduler_name, exc,
             )
             continue
+        scheduling_time_s = time.perf_counter() - t0
 
         logger.info("Assignment: %s", assignment)
 
@@ -417,7 +430,7 @@ def run_benchmarks(
 
         # Step 4: Compute summary
         summary = _compute_summary_row(
-            scheduler_name, assignment, tasks, results, dram_cap,
+            scheduler_name, assignment, tasks, results, dram_cap, scheduling_time_s
         )
         all_summaries.append(summary)
 
@@ -482,12 +495,18 @@ def main() -> None:
         choices=["fcfs", "rr", "greedy", "greedy_priority", "rqaoa"],
         help="Specific schedulers to run (default: all).",
     )
+    parser.add_argument(
+        "--use-ibm",
+        action="store_true",
+        help="Run RQAOA on actual IBM Quantum hardware (requires IBM_QUANTUM_TOKEN in .env).",
+    )
     args = parser.parse_args()
 
     run_benchmarks(
         dry_run=args.dry_run,
         scale_factor=args.scale_factor,
         schedulers=args.schedulers,
+        use_ibm=args.use_ibm,
     )
 
 

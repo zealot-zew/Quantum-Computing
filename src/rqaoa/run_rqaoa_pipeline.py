@@ -21,7 +21,6 @@ from src.rqaoa.qubo_builder import (
     build_qubo_from_tasks,
     compute_latency_cost,
     compute_dram_used,
-    decode_solution,
     num_slack_bits,
     DEFAULT_TASKS,
     DRAM_CAPACITY_MB,
@@ -37,9 +36,10 @@ PROJECT_ROOT: str = str(Path(__file__).parents[2])
 
 
 def run_full_rqaoa_pipeline(
-    tasks: list = None,
+    tasks: list | None = None,
     dram_capacity_mb: float = DRAM_CAPACITY_MB,
     label: str = "8tasks",
+    use_ibm: bool = False,
 ) -> Dict[int, str]:
     """
     Runs the complete QUBO -> RQAOA -> decode -> validate -> save pipeline.
@@ -65,9 +65,9 @@ def run_full_rqaoa_pipeline(
     if tasks is None:
         tasks = DEFAULT_TASKS
 
-    n_tasks     = len(tasks)
-    n_slack     = num_slack_bits(dram_capacity_mb)
-    n_total     = n_tasks + n_slack
+    n_tasks = len(tasks)
+    n_slack = num_slack_bits(dram_capacity_mb)
+    n_total = n_tasks + n_slack
 
     logger.info(f"=== Pipeline: {n_tasks} tasks | {n_slack} slack bits | "
                 f"{n_total} total QUBO variables ===")
@@ -89,7 +89,7 @@ def run_full_rqaoa_pipeline(
 
     # ── Step 3: Run RQAOA on the full n_total variables ──────────────────────
     logger.info("Step 3: Running RQAOA (%d variables)...", n_total)
-    raw_solution = run_rqaoa_optimizer(qubo_dict, num_variables=n_total)
+    raw_solution = run_rqaoa_optimizer(qubo_dict, num_variables=n_total, use_ibm=use_ibm)
     logger.debug("Raw RQAOA solution: %s", raw_solution)
 
     # Verify RQAOA returned all expected variables
@@ -108,7 +108,6 @@ def run_full_rqaoa_pipeline(
         tasks[i].task_id: int(raw_solution.get(i, 0))
         for i in range(n_tasks)
     }
-   
 
     # Slack bits: indices n_tasks .. n_total-1
     slack_val = sum(
@@ -159,7 +158,7 @@ def run_full_rqaoa_pipeline(
     logger.info("=== Assignment Result ===")
     for i in sorted(range(n_tasks), key=lambda i: tasks[i].memory_sensitivity,
                     reverse=True):
-        tid  = tasks[i].task_id
+        tid = tasks[i].task_id
         tier = memory_map[tid]
         logger.info(
             f"  Task {tid}: sens={tasks[i].memory_sensitivity:.2f} "
@@ -206,7 +205,12 @@ def run_full_rqaoa_pipeline(
 
 
 if __name__ == "__main__":
-    result = run_full_rqaoa_pipeline()
+    import argparse
+    parser = argparse.ArgumentParser(description="Run RQAOA Pipeline")
+    parser.add_argument("--ibm", action="store_true", help="Run on IBM Quantum backend")
+    args = parser.parse_args()
+
+    result = run_full_rqaoa_pipeline(use_ibm=args.ibm)
     print("\nDone ✅")
     for tid, tier in sorted(result.items()):
         print(f"  Task {tid} -> {tier}")

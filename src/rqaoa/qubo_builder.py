@@ -40,10 +40,10 @@ where K' = S - D = total_task_memory - DRAM_capacity:
 import os
 import math
 import numpy as np
+from dataclasses import dataclass
 import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from dataclasses import dataclass
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 # ── Physical constants ────────────────────────────────────────────────────────
@@ -155,15 +155,14 @@ def build_qubo_from_tasks(
     Raises:
         ValueError: If DRAM capacity >= total task memory.
     """
-    n         = len(tasks)
-    S         = sum(t.memory_requirement_mb for t in tasks)
+    n = len(tasks)
+    S = sum(t.memory_requirement_mb for t in tasks)
     if dram_capacity_mb >= S:
         dram_capacity_mb = S
-    b         = num_slack_bits(dram_capacity_mb)
-    total     = n + b
-   
-    K_prime = max(0, S - dram_capacity_mb)   # K' = S - D
+    b = num_slack_bits(dram_capacity_mb)
+    total = n + b
 
+    K_prime = max(0, S - dram_capacity_mb)   # K' = S - D
 
     Q = np.zeros((total, total), dtype=np.float64)
     lam = penalty_weight
@@ -195,9 +194,9 @@ def build_qubo_from_tasks(
         Q[n + k][n + k] += lam * (4.0**k + 2.0 * K_prime * (2.0**k))
 
     for k in range(b):
-        for l in range(k + 1, b):
+        for l_idx in range(k + 1, b):
             # Slack off-diagonal: lambda * 2 * 2^k * 2^l
-            Q[n + k][n + l] += lam * 2.0 * (2.0**k) * (2.0**l)
+            Q[n + k][n + l_idx] += lam * 2.0 * (2.0**k) * (2.0**l_idx)
 
     # ── Task-slack cross terms ────────────────────────────────────────────────
 
@@ -235,14 +234,8 @@ def decode_solution(
         Dict {task_id: 0 (DRAM) or 1 (CXL)} — task assignments only.
     """
     n = len(tasks)
-    b = num_slack_bits(dram_capacity_mb)
 
     assignment = {tasks[i].task_id: int(solution.get(i, 0)) for i in range(n)}
-    slack_val  = decode_slack(solution, n, b)
-    dram_used  = sum(
-        tasks[i].memory_requirement_mb
-        for i in range(n) if solution.get(i, 0) == 0
-    )
 
     return assignment
 
@@ -261,8 +254,8 @@ def compute_qubo_cost(assignment_full: dict, qubo_matrix: np.ndarray) -> float:
         Float QUBO cost. Lower = better.
     """
     total = qubo_matrix.shape[0]
-    x     = np.array([float(assignment_full.get(i, 0)) for i in range(total)])
-    cost  = 0.0
+    x = np.array([float(assignment_full.get(i, 0)) for i in range(total)])
+    cost = 0.0
     for i in range(total):
         for j in range(i, total):
             cost += qubo_matrix[i][j] * x[i] * x[j]
@@ -307,13 +300,13 @@ def build_full_solution(task_assignment: dict, tasks: list,
     Returns:
         Full solution dict {var_index: 0 or 1}.
     """
-    n         = len(tasks)
-    b         = num_slack_bits(dram_capacity_mb)
+    n = len(tasks)
+    b = num_slack_bits(dram_capacity_mb)
     dram_used = compute_dram_used(task_assignment, tasks)
     slack_val = max(0.0, dram_capacity_mb - dram_used)
 
     # Encode slack as binary (standard binary encoding)
-    slack_int  = int(round(slack_val))
+    slack_int = int(round(slack_val))
     slack_bits = {}
     for k in range(b):
         slack_bits[n + k] = (slack_int >> k) & 1
@@ -331,7 +324,7 @@ def build_full_solution(task_assignment: dict, tasks: list,
 def tune_lambda(
     tasks:            list,
     dram_capacity_mb: float = DRAM_CAPACITY_MB,
-    verbose:          bool  = True,
+    verbose:          bool = True,
 ) -> float:
     """
     Finds a good lambda by ensuring the capacity penalty and latency terms
@@ -344,8 +337,8 @@ def tune_lambda(
       4. Validate: for a valid assignment, QUBO cost should be lower
          than for a capacity-violating assignment
     """
-    S       = sum(t.memory_requirement_mb for t in tasks)
-    K       = S - dram_capacity_mb
+    S = sum(t.memory_requirement_mb for t in tasks)
+    K = S - dram_capacity_mb
 
     # Scale of latency diagonal
     max_latency = max(
@@ -363,7 +356,7 @@ def tune_lambda(
     b = num_slack_bits(dram_capacity_mb)
     max_slack_diag = 2.0 * K * (2.0 ** (b - 1))
 
-    lambda_from_task  = max_latency / max_cap_diag  if max_cap_diag  > 0 else 0.05
+    lambda_from_task = max_latency / max_cap_diag if max_cap_diag > 0 else 0.05
     lambda_from_slack = max_latency / max_slack_diag if max_slack_diag > 0 else 0.05
 
     # Take the geometric mean — balances both scales
@@ -389,7 +382,7 @@ def verify_qubo_sanity(
     tasks:            list,
     qubo_matrix:      np.ndarray,
     dram_capacity_mb: float = DRAM_CAPACITY_MB,
-    verbose:          bool  = True,
+    verbose:          bool = True,
 ) -> bool:
     """
     Verifies the QUBO is correctly formulated by checking:
@@ -407,7 +400,7 @@ def verify_qubo_sanity(
     sorted_idx = sorted(range(n),
                         key=lambda i: tasks[i].memory_sensitivity, reverse=True)
     smart_task = {}
-    dram_used  = 0.0
+    dram_used = 0.0
     for i in sorted_idx:
         if dram_used + tasks[i].memory_requirement_mb <= dram_capacity_mb:
             smart_task[tasks[i].task_id] = 0
@@ -418,24 +411,24 @@ def verify_qubo_sanity(
     all_cxl_task = {t.task_id: 1 for t in tasks}
 
     # Build full solutions with correct slack
-    smart_full   = build_full_solution(smart_task,   tasks, dram_capacity_mb)
-    cxl_full     = build_full_solution(all_cxl_task, tasks, dram_capacity_mb)
+    smart_full = build_full_solution(smart_task,   tasks, dram_capacity_mb)
+    cxl_full = build_full_solution(all_cxl_task, tasks, dram_capacity_mb)
 
     # Build smart solution with WRONG slack (zero) to show slack matters
     smart_zero_slack = {i: smart_task.get(tasks[i].task_id, 0) for i in range(n)}
     smart_zero_slack.update({n + k: 0 for k in range(b)})
 
     c_smart_correct = compute_qubo_cost(smart_full,        qubo_matrix)
-    c_smart_bad     = compute_qubo_cost(smart_zero_slack,  qubo_matrix)
-    c_cxl           = compute_qubo_cost(cxl_full,          qubo_matrix)
+    c_smart_bad = compute_qubo_cost(smart_zero_slack,  qubo_matrix)
+    c_cxl = compute_qubo_cost(cxl_full,          qubo_matrix)
 
     # Verify penalty = 0 for smart assignment with correct slack
-    slack_val     = decode_slack(smart_full, n, b)
-    dram_used_sm  = compute_dram_used(smart_task, tasks)
-    residual      = dram_used_sm + slack_val - dram_capacity_mb
+    slack_val = decode_slack(smart_full, n, b)
+    dram_used_sm = compute_dram_used(smart_task, tasks)
+    residual = dram_used_sm + slack_val - dram_capacity_mb
 
-    check1 = abs(residual) < 1.0          # slack makes constraint = 0
-    check2 = c_smart_correct < c_smart_bad # correct slack beats zero slack
+    check1 = abs(residual) < 1.0  # slack makes constraint = 0
+    check2 = c_smart_correct < c_smart_bad  # correct slack beats zero slack
     check3 = c_smart_correct < c_cxl      # smart beats all-CXL
     check4 = compute_dram_used(smart_task, tasks) <= dram_capacity_mb
 
@@ -464,7 +457,7 @@ def verify_qubo_sanity(
         print(f"  {'✅' if check4 else '❌'} "
               f"Smart assignment respects DRAM capacity")
         print()
-        print(f"  Smart assignment detail:")
+        print("  Smart assignment detail:")
         for i in sorted_idx:
             tier = "DRAM" if smart_task[tasks[i].task_id] == 0 else "CXL "
             print(f"    Task {tasks[i].task_id}: "
