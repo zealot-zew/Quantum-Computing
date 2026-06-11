@@ -52,6 +52,7 @@ All outputs are generated inside the `results/` folder:
 ![Average Completion Time](results/plots/avg_completion_time.png)
 ![Total Latency Cost](results/plots/latency_cost.png)
 ![Memory Distribution](results/plots/memory_distribution.png)
+![Scheduling Overhead](results/plots/scheduling_overhead.png)
 
 ## Documentation
 
