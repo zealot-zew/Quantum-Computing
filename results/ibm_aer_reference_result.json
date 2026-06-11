@@ -1,0 +1,15 @@
+{
+  "source": "aer_simulator",
+  "task_indices": [
+    0,
+    2,
+    4,
+    6
+  ],
+  "assignment": {
+    "0": 0,
+    "1": 1,
+    "2": 1,
+    "3": 0
+  }
+}
