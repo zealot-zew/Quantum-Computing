@@ -1,20 +1,26 @@
-
 """
 changed
 rqaoa_runner.py — RQAOA optimizer.
 Variable convention: 0 = DRAM, 1 = CXL.
 """
 
-import logging, sys, os
+Maintained by: Hari (P2 — Infra + Quantum Algo)
+"""
 
-src_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
+import logging
+import os
+from typing import Dict, Any
 
-from rqaoa.rqaoa_config import RQAOA_LAYERS, SHOTS
+from dotenv import load_dotenv
+from src.rqaoa.rqaoa_config import (
+    RQAOA_LAYERS,
+    SHOTS,
+    FALLBACK_CXL_BUDGET_MB,
+    DEFAULT_FALLBACK_TASK_SIZE_MB,
+    IBM_DEVICE_NAME
+)
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
 CUTOFF_BY_SIZE: dict = {8: 2, 12: 2, 16: 3}
 
@@ -89,14 +95,37 @@ def run_rqaoa_optimizer(
         {variable_index: 0 (DRAM) or 1 (CXL)}
     """
     try:
-        from openqaoa import RQAOA
-        from openqaoa.backends import create_device
+        from openqaoa import RQAOA  # type: ignore
+        from openqaoa.backends import create_device  # type: ignore
 
         cutoff = CUTOFF_BY_SIZE.get(num_variables, max(3, num_variables // 4))
         logger.info(f"RQAOA: {num_variables} vars | p={RQAOA_LAYERS} | cutoff={cutoff}")
 
         rqaoa_solver = RQAOA()
-        device = create_device(location="local", name="vectorized")
+
+        device = None
+        if use_ibm:
+            load_dotenv()
+            token = os.getenv("IBM_QUANTUM_TOKEN")
+            if token:
+                from qiskit_ibm_provider import IBMProvider  # type: ignore
+                try:
+                    IBMProvider.save_account(token=token, overwrite=True)
+                    logger.info("Saved IBM Quantum token.")
+                except Exception as e:
+                    logger.warning(f"Could not save IBM Quantum token: {e}")
+
+                device = create_device(location="ibmq", name=IBM_DEVICE_NAME)
+                logger.info(f"Configured IBM Quantum device: {IBM_DEVICE_NAME}")
+            else:
+                logger.warning(
+                    "IBM_QUANTUM_TOKEN not found in environment. "
+                    "Falling back to local vectorized simulator."
+                )
+
+        if device is None:
+            device = create_device(location="local", name="vectorized")
+
         rqaoa_solver.set_device(device)
         rqaoa_solver.set_circuit_properties(p=RQAOA_LAYERS, init_type="ramp")
         rqaoa_solver.set_classical_optimizer(method="cobyla", maxiter=200)

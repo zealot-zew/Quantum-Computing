@@ -60,7 +60,8 @@ from src.scheduler.tasks import CXL_LATENCY_NS, DRAM_LATENCY_NS
 # =============================================================================
 
 
-# Latency constants (nanoseconds). Imported from src.scheduler.tasks to keep values consistent across the codebase.
+# Latency constants are imported from src.scheduler.tasks to keep the evaluation
+# layer consistent with the scheduler and QUBO formulas.
 
 
 def calculate_avg_completion_time(durations_s: List[float]) -> float:
@@ -73,8 +74,9 @@ def calculate_avg_completion_time(durations_s: List[float]) -> float:
     Returns:
         Mean duration in seconds. Returns 0.0 for an empty list.
     """
-    # TODO (Day 3): Implement after task_runner.py produces timing output.
-    pass
+    if not durations_s:
+        return 0.0
+    return sum(durations_s) / len(durations_s)
 
 
 def calculate_makespan(
@@ -95,8 +97,11 @@ def calculate_makespan(
     Returns:
         Makespan in seconds. Returns 0.0 if inputs are empty.
     """
-    # TODO (Day 3): Implement after task_runner.py produces timing output.
-    pass
+    if not start_times_s or not end_times_s:
+        return 0.0
+    if len(start_times_s) != len(end_times_s):
+        raise ValueError("start_times_s and end_times_s must have the same length.")
+    return max(end_times_s) - min(start_times_s)
 
 
 def calculate_latency_cost(
@@ -125,8 +130,14 @@ def calculate_latency_cost(
     Raises:
         ValueError: If assigned_tier is not "DRAM" or "CXL".
     """
-    # TODO (Day 3): Implement after scheduler assignments are available.
-    pass
+    if assigned_tier == "DRAM":
+        tier_latency_ns = DRAM_LATENCY_NS
+    elif assigned_tier == "CXL":
+        tier_latency_ns = CXL_LATENCY_NS
+    else:
+        raise ValueError(f"assigned_tier must be 'DRAM' or 'CXL', got {assigned_tier!r}.")
+
+    return memory_sensitivity * tier_latency_ns * memory_requirement_mb
 
 
 def calculate_dram_utilization(
@@ -149,5 +160,35 @@ def calculate_dram_utilization(
     Raises:
         ValueError: If dram_capacity_mb is zero or negative.
     """
-    # TODO (Day 3): Implement after scheduler assignments are available.
-    pass
+    if dram_capacity_mb <= 0:
+        raise ValueError("dram_capacity_mb must be positive.")
+    return (dram_usage_mb / dram_capacity_mb) * 100.0
+
+def compute_total_latency_cost(
+    assignment,
+    tasks,
+) -> float:
+    """
+    Compute total weighted latency cost for an assignment.
+
+    Args:
+        assignment: task_id -> "DRAM" or "CXL"
+        tasks: List of Task objects
+
+    Returns:
+        Total latency cost
+    """
+    total_cost = 0.0
+
+    task_map = {task.task_id: task for task in tasks}
+
+    for task_id, tier in assignment.items():
+        task = task_map[task_id]
+
+        total_cost += calculate_latency_cost(
+            memory_requirement_mb=task.memory_requirement_mb,
+            memory_sensitivity=task.memory_sensitivity,
+            assigned_tier=tier,
+        )
+
+    return total_cost

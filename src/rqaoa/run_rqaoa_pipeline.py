@@ -1,4 +1,3 @@
-
 """
 #changed
 run_rqaoa_pipeline.py — QUBO -> RQAOA -> decode -> validate -> save
@@ -8,13 +7,16 @@ No slack variables. QUBO size = N x N where N = number of tasks.
 
 import logging, os, csv, sys
 
-src_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if src_path not in sys.path:
-    sys.path.insert(0, src_path)
+Maintained by: Hari (P2 — Infra + Quantum Algo)
+"""
 
-PROJECT_ROOT = os.path.dirname(src_path)
+import csv
+import logging
+import os
+from pathlib import Path
+from typing import Dict
 
-from rqaoa.qubo_builder import (
+from src.rqaoa.qubo_builder import (
     build_qubo_from_tasks,
     compute_latency_cost,
     compute_dram_used,
@@ -22,19 +24,22 @@ from rqaoa.qubo_builder import (
     DEFAULT_TASKS,
     DRAM_CAPACITY_MB,
 )
-from rqaoa.qubo_converter import convert_numpy_qubo_to_openqaoa_dict
-from rqaoa.rqaoa_runner import run_rqaoa_optimizer
-from rqaoa.result_parser import decode_assignment_to_memory_map, validate_assignment
+from src.rqaoa.qubo_converter import convert_numpy_qubo_to_openqaoa_dict
+from src.rqaoa.rqaoa_runner import run_rqaoa_optimizer
+from src.rqaoa.result_parser import decode_assignment_to_memory_map, validate_assignment
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+# Project root: two levels up from src/rqaoa/
+PROJECT_ROOT: str = str(Path(__file__).parents[2])
 
 
 def run_full_rqaoa_pipeline(
-    tasks:            list  = None,
+    tasks: list | None = None,
     dram_capacity_mb: float = DRAM_CAPACITY_MB,
-    label:            str   = "8tasks",
-) -> dict:
+    label: str = "8tasks",
+    use_ibm: bool = False,
+) -> Dict[int, str]:
     """
     Runs the complete QUBO -> RQAOA -> decode -> validate -> save pipeline.
 
@@ -135,7 +140,12 @@ def run_full_rqaoa_pipeline(
 
 
 if __name__ == "__main__":
-    result = run_full_rqaoa_pipeline()
+    import argparse
+    parser = argparse.ArgumentParser(description="Run RQAOA Pipeline")
+    parser.add_argument("--ibm", action="store_true", help="Run on IBM Quantum backend")
+    args = parser.parse_args()
+
+    result = run_full_rqaoa_pipeline(use_ibm=args.ibm)
     print("\nDone ✅")
     for tid, tier in sorted(result.items()):
         print(f"  Task {tid} -> {tier}")

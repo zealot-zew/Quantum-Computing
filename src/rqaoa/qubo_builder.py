@@ -44,10 +44,10 @@ Why no slack variables:
 
 import os
 import numpy as np
+from dataclasses import dataclass
 import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from dataclasses import dataclass
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 # ── Physical constants ────────────────────────────────────────────────────────
@@ -260,7 +260,7 @@ def verify_qubo_sanity(
     tasks:            list,
     qubo_matrix:      np.ndarray,
     dram_capacity_mb: float = DRAM_CAPACITY_MB,
-    verbose:          bool  = True,
+    verbose:          bool = True,
 ) -> bool:
     """
     Verifies three properties:

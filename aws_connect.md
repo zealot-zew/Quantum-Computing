@@ -6,12 +6,12 @@ This guide explains how to connect to the project's remote AWS EC2 instance usin
 
 ## 📌 Instance Details (from AWS Console)
 
-* **Instance ID:** `i-0aa88607ce0e5f4c9`
-* **Public IPv4:** `18.61.219.164`
-* **Public DNS:** `ec2-18-61-219-164.ap-south-2.compute.amazonaws.com`
+* **Instance ID:** `i-056f98048f1836754`
+* **Public IPv4:** `3.92.223.153`
+* **Public DNS:** `ec2-3-92-223-153.compute-1.amazonaws.com`
 * **Private Key File:** `quantum.pem` (located in the root of this project folder)
-* **Instance Type:** `t3.small`
-* **Region:** `ap-south-2` (Asia Pacific - Hyderabad)
+* **Instance Type:** `m7i-flex.large`
+* **Region:** `us-east-1` (US East - N. Virginia)
 
 ---
 
@@ -34,12 +34,12 @@ Run the SSH command to connect to the instance. Depending on the operating syste
 
 * **For Ubuntu / Debian instances (Recommended / Default):**
   ```bash
-  ssh -i "quantum.pem" ubuntu@18.61.219.164
+  ssh -i "quantum.pem" ubuntu@3.92.223.153
   ```
 
 * **For Amazon Linux / Red Hat / CentOS instances:**
   ```bash
-  ssh -i "quantum.pem" ec2-user@18.61.219.164
+  ssh -i "quantum.pem" ec2-user@3.92.223.153
   ```
 
 ---

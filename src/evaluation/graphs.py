@@ -1,66 +1,162 @@
 """
-Visualization functions for scheduler evaluation results.
+Plot generation utilities for scheduler evaluation.
 
-This module generates comparison plots for all scheduler benchmarks.
-All plots are saved to results/plots/ with publication-quality formatting.
-
-Maintained by: Vikas (P4 — Simulation & Evaluation Engineer)
-
-See src/evaluation/README.md for:
-  - Full list of planned plots and output filenames
-  - Data format expected by each function
+Maintained by: Vikas (P4)
 """
 
-# TODO (Day 4): Implement all three functions using matplotlib.
-# Import pattern:
-#   import matplotlib.pyplot as plt
-#   from src.evaluation.metrics import calculate_latency_cost
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
 
 
-def plot_latency_comparison(results: list) -> None:
+def plot_scheduling_overhead(
+    scheduler_names,
+    scheduling_times,
+    output_file,
+):
+    plt.figure(figsize=(8, 5))
+
+    # Use log scale since quantum simulation is orders of magnitude slower
+    plt.bar(
+        scheduler_names,
+        scheduling_times,
+        color='coral'
+    )
+
+    plt.yscale('log')
+    plt.title("Scheduling Overhead (Log Scale)")
+    plt.xlabel("Scheduler")
+    plt.ylabel("Scheduling Compute Time (s)")
+
+    plt.tight_layout()
+    plt.savefig(output_file)
+    plt.close()
+
+
+
+def plot_avg_completion_time(
+    scheduler_names,
+    avg_times,
+    output_file,
+):
+    plt.figure(figsize=(8, 5))
+
+    plt.bar(
+        scheduler_names,
+        avg_times,
+    )
+
+    plt.title("Average Completion Time per Scheduler")
+    plt.xlabel("Scheduler")
+    plt.ylabel("Average Completion Time (s)")
+
+    plt.tight_layout()
+    plt.savefig(output_file)
+    plt.close()
+
+
+def plot_total_latency_cost(
+    scheduler_names,
+    latency_costs,
+    output_file,
+):
+    plt.figure(figsize=(8, 5))
+
+    plt.bar(
+        scheduler_names,
+        latency_costs,
+    )
+
+    plt.title("Total Weighted Latency Cost")
+    plt.xlabel("Scheduler")
+    plt.ylabel("Latency Cost")
+
+    plt.tight_layout()
+    plt.savefig(output_file)
+    plt.close()
+
+
+def plot_memory_distribution(
+    scheduler_names,
+    dram_tasks,
+    cxl_tasks,
+    output_file,
+):
+    plt.figure(figsize=(8, 5))
+
+    plt.bar(
+        scheduler_names,
+        dram_tasks,
+        label="DRAM",
+    )
+
+    plt.bar(
+        scheduler_names,
+        cxl_tasks,
+        bottom=dram_tasks,
+        label="CXL",
+    )
+
+    plt.title("DRAM vs CXL Task Placement")
+    plt.xlabel("Scheduler")
+    plt.ylabel("Number of Tasks")
+
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(output_file)
+    plt.close()
+
+
+def generate_all_plots(
+    csv_file: str,
+    output_dir: str,
+):
     """
-    Generate a bar chart comparing total weighted latency cost per scheduler.
-
-    Args:
-        results: List of per-scheduler summary dicts. Each dict must contain:
-            - "scheduler_name" (str): Scheduler identifier.
-            - "total_latency_cost_ns" (float): Sum of latency costs across tasks.
-
-    Returns:
-        None. Saves plot to results/plots/latency_comparison.png.
+    Generate all evaluation plots from summary CSV.
     """
-    # TODO (Day 4): Implement bar chart using matplotlib.
-    pass
 
+    os.makedirs(output_dir, exist_ok=True)
 
-def plot_makespan_comparison(results: list) -> None:
-    """
-    Generate a bar chart comparing makespan (wall-clock time) per scheduler.
+    df = pd.read_csv(csv_file)
 
-    Args:
-        results: List of per-scheduler summary dicts. Each dict must contain:
-            - "scheduler_name" (str): Scheduler identifier.
-            - "makespan_s" (float): Total wall-clock time for the full batch.
+    plot_avg_completion_time(
+        df["scheduler_name"],
+        df["avg_completion_time_s"],
+        os.path.join(
+            output_dir,
+            "avg_completion_time.png",
+        ),
+    )
 
-    Returns:
-        None. Saves plot to results/plots/makespan_comparison.png.
-    """
-    # TODO (Day 4): Implement bar chart using matplotlib.
-    pass
+    plot_total_latency_cost(
+        df["scheduler_name"],
+        df["total_latency_cost_ns"],
+        os.path.join(
+            output_dir,
+            "latency_cost.png",
+        ),
+    )
 
+    plot_memory_distribution(
+        df["scheduler_name"],
+        df["dram_tasks"],
+        df["cxl_tasks"],
+        os.path.join(
+            output_dir,
+            "memory_distribution.png",
+        ),
+    )
 
-def plot_utilization(results: list) -> None:
-    """
-    Generate a stacked bar chart showing DRAM vs CXL task counts per scheduler.
+    if "scheduling_time_s" in df.columns:
+        plot_scheduling_overhead(
+            df["scheduler_name"],
+            df["scheduling_time_s"],
+            os.path.join(
+                output_dir,
+                "scheduling_overhead.png",
+            ),
+        )
 
-    Args:
-        results: List of per-scheduler summary dicts. Each dict must contain:
-            - "scheduler_name" (str): Scheduler identifier.
-            - "dram_tasks" (int): Number of tasks assigned to DRAM.
-            - "cxl_tasks" (int): Number of tasks assigned to CXL.
-
-    Returns:
-        None. Saves plot to results/plots/utilization.png.
-    """
-    # TODO (Day 4): Implement stacked bar chart using matplotlib.
-    pass
+    print(f"Plots saved to {output_dir}")
