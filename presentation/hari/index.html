@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Introduction — Quantum CXL Scheduler</title>
+  <meta name="description" content="Introduction: data center memory bottleneck, quantum computing fundamentals, system architecture, and the scale argument.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+  <style>
+    /* ============ TOKENS ============ */
+    :root {
+      --bg:           #FAF9F6;
+      --bg-card:      #FFFFFF;
+      --text:         #111827;
+      --text-sub:     #4B5563;
+      --text-muted:   #9CA3AF;
+      --border:       #E5E7EB;
+      --accent:       #4338CA;
+      --accent-light: #EEF2FF;
+      --red:          #DC2626;
+      --red-light:    #FEF2F2;
+      --green:        #059669;
+      --green-light:  #ECFDF5;
+      --amber:        #D97706;
+      --amber-light:  #FFFBEB;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.05);
+      --shadow-md:    0 4px 12px rgba(0,0,0,.06);
+      --shadow-lg:    0 12px 28px rgba(0,0,0,.07);
+      --r:            12px;
+    }
+
+    /* ============ RESET ============ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      scroll-behavior: smooth;
+      scroll-snap-type: y mandatory;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.6; overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    h1, h2, h3 {
+      font-family: 'Outfit', sans-serif;
+      color: var(--text); line-height: 1.15;
+    }
+    h1 { font-size: clamp(36px, 5vw, 64px); font-weight: 800; letter-spacing: -.02em; }
+    h2 { font-size: clamp(26px, 3.5vw, 44px); font-weight: 800; }
+    h3 { font-size: 20px; font-weight: 700; }
+
+    p { color: var(--text-sub); line-height: 1.75; }
+
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+    }
+
+    /* ============ BACK LINK (top-left) ============ */
+    .back-link {
+      position: fixed; top: 20px; left: 24px; z-index: 50;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-muted);
+      background: rgba(255,255,255,.85);
+      backdrop-filter: blur(10px);
+      padding: 7px 16px; border-radius: 40px;
+      border: 1px solid var(--border);
+      transition: all .2s;
+    }
+    .back-link:hover {
+      color: var(--accent); border-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    /* ============ PROGRESS DOTS (right side) ============ */
+    .progress-dots {
+      position: fixed; right: 24px; top: 50%;
+      transform: translateY(-50%); z-index: 50;
+      display: flex; flex-direction: column; gap: 14px;
+    }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border); cursor: pointer;
+      transition: all .3s; border: none;
+      position: relative;
+    }
+    .dot::after {
+      content: attr(data-tip);
+      position: absolute; right: 18px; top: 50%;
+      transform: translateY(-50%);
+      background: var(--text); color: white;
+      font-size: 11px; font-weight: 500;
+      padding: 3px 10px; border-radius: 6px;
+      white-space: nowrap; opacity: 0;
+      pointer-events: none; transition: opacity .2s;
+    }
+    .dot:hover::after { opacity: 1; }
+    .dot.active { background: var(--accent); transform: scale(1.5); }
+
+    /* ============ SECTION BASE ============ */
+    .slide {
+      min-height: 100vh;
+      padding: 60px 72px 60px;
+      display: flex; flex-direction: column;
+      justify-content: center;
+      position: relative;
+      scroll-snap-align: start;
+    }
+
+    .sec-tag {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .12em; text-transform: uppercase;
+      color: var(--accent);
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 14px;
+    }
+    .sec-tag::before {
+      content: ''; width: 20px; height: 2px;
+      background: var(--accent);
+    }
+
+    /* ============ BUTTONS ============ */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 11px 26px; border-radius: 40px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; border: none;
+      font-family: 'Inter', sans-serif;
+      transition: all .2s; white-space: nowrap;
+    }
+    .btn-accent {
+      background: var(--accent); color: white;
+      box-shadow: 0 4px 14px rgba(67,56,202,.3);
+    }
+    .btn-accent:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(67,56,202,.35); }
+    .btn-outline {
+      background: transparent; color: var(--accent);
+      border: 2px solid var(--accent);
+    }
+    .btn-outline:hover { background: var(--accent-light); }
+    .btn-green {
+      background: var(--green); color: white;
+      box-shadow: 0 4px 14px rgba(5,150,105,.3);
+    }
+    .btn-green:hover { transform: translateY(-2px); }
+    .btn-red {
+      background: var(--red); color: white;
+      box-shadow: 0 4px 14px rgba(220,38,38,.25);
+    }
+    .btn-red:hover { transform: translateY(-2px); }
+    .btn-sm { padding: 8px 18px; font-size: 13px; }
+
+    /* ============ CARDS ============ */
+    .card {
+      background: white; border: 1.5px solid var(--border);
+      border-radius: var(--r); box-shadow: var(--shadow-sm);
+    }
+
+    /* ============ REVEAL ============ */
+    .reveal {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .d1{transition-delay:.06s} .d2{transition-delay:.14s}
+    .d3{transition-delay:.22s} .d4{transition-delay:.30s}
+    .d5{transition-delay:.38s}
+
+    /* ============ HERO ============ */
+    #hero {
+      min-height: auto;
+      padding-top: 80px;
+      padding-bottom: 60px;
+      justify-content: flex-start;
+    }
+
+    .glow {
+      position: absolute; border-radius: 50%;
+      filter: blur(100px); pointer-events: none;
+      background: rgba(67, 56, 202, .05);
+    }
+    .gl1 { width: 500px; height: 500px; top: -140px; left: -100px; }
+    .gl2 { width: 360px; height: 360px; bottom: 40px; right: -60px; }
+
+    #hero > * { position: relative; z-index: 1; }
+
+    .hero-chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: white; border: 1px solid var(--border);
+      border-radius: 40px; padding: 7px 20px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-sub);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 28px;
+    }
+    .hero-chip i { font-size: 16px; color: var(--accent); }
+
+    .hero-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center; margin-top: 32px;
+    }
+
+    .hero-desc {
+      font-size: 17px; margin-top: 20px; max-width: 540px;
+    }
+
+    .hero-cta {
+      display: flex; gap: 12px; margin-top: 32px;
+    }
+
+    /* Hero right — mini canvas */
+    .hero-canvas-card {
+      background: white; border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-lg);
+      padding: 20px; overflow: hidden;
+    }
+    .hero-canvas-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-muted);
+      letter-spacing: .08em; margin-bottom: 10px;
+    }
+    #heroCanvas { width: 100%; display: block; border-radius: 8px; }
+    .canvas-legend {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-top: 10px;
+      font-size: 11px; color: var(--text-muted);
+    }
+
+    /* Intro strip */
+    .intro-strip {
+      margin-top: 48px; padding: 18px 24px;
+      background: white; border-radius: var(--r);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+      max-width: 600px;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .intro-strip-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--accent-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: var(--accent); flex-shrink: 0;
+    }
+    .intro-strip-text {
+      font-size: 14px; font-weight: 600; color: var(--text);
+    }
+    .intro-strip-sub {
+      font-size: 12px; color: var(--text-muted); margin-top: 2px;
+    }
+
+    /* ============================================
+       SECTION 1 — DATACENTER PROBLEM
+       (Part 3 will fill the canvas + logic)
+    ============================================ */
+    #datacenter {
+      border-top: 1px solid var(--border);
+    }
+
+    .dc-layout {
+      display: grid; grid-template-columns: 1fr 1.2fr;
+      gap: 48px; align-items: start; margin-top: 32px;
+    }
+
+    .dc-narration {
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .narration-step {
+      padding: 16px 20px;
+      border-left: 3px solid var(--border);
+      transition: border-color .3s, background .3s;
+      border-radius: 0 var(--r) var(--r) 0;
+      cursor: pointer;
+    }
+    .narration-step.active {
+      border-left-color: var(--accent);
+      background: var(--accent-light);
+    }
+    .narration-step .ns-title {
+      font-size: 14px; font-weight: 700; color: var(--text);
+    }
+    .narration-step .ns-body {
+      font-size: 13px; color: var(--text-sub); margin-top: 4px;
+      line-height: 1.65;
+    }
+
+    .dc-canvas-card {
+      background: white; border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      padding: 20px; position: sticky; top: 80px;
+    }
+
+    .dc-canvas-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 12px;
+    }
+    .dc-canvas-header span {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-muted);
+      letter-spacing: .06em;
+    }
+
+    .dc-controls {
+      display: flex; gap: 8px;
+    }
+
+    #dcCanvas { width: 100%; display: block; border-radius: 8px; }
+
+    .dc-metrics {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 10px; margin-top: 14px;
+    }
+    .dc-metric {
+      background: var(--bg); border-radius: 8px;
+      padding: 10px 12px; text-align: center;
+    }
+    .dc-metric-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px; font-weight: 800;
+      transition: color .3s;
+    }
+    .dc-metric-label {
+      font-size: 10px; color: var(--text-muted);
+      font-weight: 600; text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    /* ============================================
+       SECTION 2 — QUBIT DEMO
+       (Part 4 will fill the interactive box)
+    ============================================ */
+    #qubit {
+      border-top: 1px solid var(--border);
+    }
+
+    .qubit-layout {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center;
+      margin-top: 36px;
+    }
+
+    /* Classical bit */
+    .bit-box {
+      background: white; border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      padding: 32px; text-align: center;
+    }
+    .bit-box-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px; font-weight: 700;
+      color: var(--text-muted); margin-bottom: 20px;
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+    .switch-track {
+      width: 80px; height: 40px;
+      background: var(--border); border-radius: 40px;
+      margin: 0 auto; position: relative;
+      cursor: pointer; transition: background .3s;
+    }
+    .switch-track.on { background: var(--accent); }
+    .switch-thumb {
+      width: 32px; height: 32px;
+      background: white; border-radius: 50%;
+      box-shadow: var(--shadow-md);
+      position: absolute; top: 4px; left: 4px;
+      transition: left .3s;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px; font-weight: 800;
+    }
+    .switch-track.on .switch-thumb { left: 44px; }
+    .bit-label {
+      margin-top: 16px; font-size: 14px;
+      color: var(--text-sub); font-weight: 600;
+    }
+    .bit-label-hint {
+      font-size: 12px; color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Qubit — Schrödinger's box */
+    .qubit-box-outer {
+      background: white; border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      padding: 32px; text-align: center;
+    }
+
+    .schrodinger-box {
+      width: 200px; height: 200px;
+      margin: 0 auto;
+      perspective: 600px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .box-container {
+      width: 100%; height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    /* The "closed box" — translucent with value spinning inside */
+    .box-shell {
+      position: absolute; inset: 0;
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      background: rgba(67, 56, 202, .04);
+      backdrop-filter: blur(2px);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .5s;
+      overflow: hidden;
+    }
+
+    .box-shell.opened {
+      background: transparent;
+      border-style: dashed;
+      border-color: var(--text-muted);
+    }
+
+    /* Spinning value inside */
+    .spin-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 64px; font-weight: 900;
+      color: var(--accent);
+      animation: spinDigit 0.3s linear infinite;
+      user-select: none;
+    }
+
+    .spin-value.collapsed {
+      animation: none;
+      font-size: 80px;
+    }
+
+    @keyframes spinDigit {
+      0%   { opacity: 0.3; content: '0'; }
+      50%  { opacity: 0.05; }
+      100% { opacity: 0.3; }
+    }
+
+    /* Lid overlay — frosted glass so you can see the spin through it */
+    .box-lid {
+      position: absolute; inset: -2px;
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      background: rgba(238, 242, 255, .55);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: 20px;
+      gap: 6px;
+      transition: all .5s ease;
+      z-index: 2;
+      cursor: pointer;
+    }
+    .box-lid i {
+      font-size: 22px; color: var(--accent); opacity: .7;
+    }
+    .box-lid span {
+      font-size: 11px; font-weight: 600;
+      color: var(--accent); opacity: .8;
+    }
+    .box-lid.open {
+      transform: rotateX(-120deg) translateY(-60px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .qubit-label {
+      margin-top: 16px; font-size: 14px;
+      color: var(--text-sub); font-weight: 600;
+    }
+    .qubit-label-hint {
+      font-size: 12px; color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .qubit-reset {
+      margin-top: 12px; font-size: 12px;
+      color: var(--accent); font-weight: 600;
+      cursor: pointer; display: none;
+      background: none; border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .qubit-reset:hover { text-decoration: underline; }
+
+    .qubit-explain {
+      margin-top: 28px;
+    }
+    .qubit-explain p {
+      font-size: 15px; line-height: 1.8;
+    }
+
+    .callout {
+      background: var(--accent-light);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--r) var(--r) 0;
+      padding: 14px 18px;
+      font-size: 14px; color: var(--text);
+      line-height: 1.7; margin-top: 16px;
+    }
+
+    /* ============================================
+       SECTION 3 — ARCHITECTURE
+       (Part 5 will fill the animated walkthrough)
+    ============================================ */
+    #architecture {
+      border-top: 1px solid var(--border);
+    }
+
+    .arch-walkthrough {
+      margin-top: 36px;
+    }
+
+    /* Detailed architecture — vertical flow */
+    .arch-pipeline {
+      display: flex; flex-direction: column;
+      gap: 0; max-width: 900px; margin: 0 auto;
+    }
+
+    .arch-stage {
+      display: grid; grid-template-columns: 200px 1fr;
+      gap: 32px; align-items: start;
+      padding: 28px 0;
+      border-bottom: 1px solid var(--border);
+      opacity: 0.4;
+      transition: opacity .5s;
+    }
+    .arch-stage.active { opacity: 1; }
+
+    .arch-stage-left {
+      display: flex; flex-direction: column;
+      align-items: flex-start; gap: 8px;
+    }
+
+    .arch-stage-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .arch-stage-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; font-weight: 600;
+      color: var(--text);
+    }
+
+    .arch-stage-files {
+      font-size: 11px; color: var(--text-muted);
+    }
+
+    .arch-stage-desc {
+      font-size: 14px; line-height: 1.75;
+      color: var(--text-sub);
+    }
+
+    .arch-stage-detail {
+      margin-top: 10px;
+      padding: 12px 16px;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 13px; color: var(--text-sub);
+      line-height: 1.65;
+    }
+
+    .arch-connector {
+      width: 2px; height: 20px;
+      background: var(--border);
+      margin: 0 0 0 23px;
+    }
+
+    /* Step-through controls */
+    .arch-controls {
+      display: flex; gap: 12px; align-items: center;
+      margin-top: 28px; max-width: 900px; margin-left: auto; margin-right: auto;
+    }
+    .arch-step-label {
+      font-size: 13px; color: var(--text-muted);
+      font-weight: 500; margin-left: auto;
+    }
+
+    /* ============================================
+       SECTION 4 — WRIGHT BROTHERS
+       (Part 6 will fill the video + message)
+    ============================================ */
+    #wright {
+      border-top: 1px solid var(--border);
+      text-align: center;
+      align-items: center;
+    }
+
+    .wright-content {
+      max-width: 700px;
+    }
+
+    .wright-video-card {
+      background: white; border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      padding: 20px; margin-top: 36px;
+      max-width: 640px;
+    }
+    .wright-video-placeholder {
+      width: 100%; height: 360px;
+      background: var(--bg);
+      border-radius: 8px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 12px; color: var(--text-muted);
+    }
+    .wright-video-placeholder i { font-size: 40px; }
+    .wright-video-placeholder span {
+      font-size: 13px; font-weight: 500;
+    }
+
+    .wright-quote {
+      font-family: 'Outfit', sans-serif;
+      font-size: 22px; font-weight: 700;
+      color: var(--text);
+      line-height: 1.5;
+      margin-top: 36px;
+      max-width: 560px;
+    }
+
+    .wright-scale {
+      display: flex; gap: 16px; justify-content: center;
+      margin-top: 36px; flex-wrap: wrap;
+    }
+    .wright-scale-card {
+      background: white; border: 1px solid var(--border);
+      border-radius: var(--r); padding: 20px 28px;
+      text-align: center; box-shadow: var(--shadow-sm);
+    }
+    .wright-scale-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 32px; font-weight: 800;
+    }
+    .wright-scale-label {
+      font-size: 11px; color: var(--text-muted);
+      font-weight: 600; margin-top: 4px;
+      text-transform: uppercase; letter-spacing: .04em;
+    }
+
+    .wright-footer-msg {
+      font-size: 15px; color: var(--text-sub);
+      margin-top: 36px; line-height: 1.75;
+      max-width: 520px;
+    }
+
+    .next-section-card {
+      display: inline-flex; align-items: center; gap: 12px;
+      margin-top: 32px; padding: 14px 24px;
+      background: white; border: 1px solid var(--border);
+      border-radius: var(--r); box-shadow: var(--shadow-sm);
+      font-size: 14px; font-weight: 600; color: var(--text);
+      transition: all .2s;
+    }
+    .next-section-card:hover {
+      border-color: var(--accent); box-shadow: var(--shadow-md);
+    }
+    .next-section-card i { font-size: 18px; color: var(--accent); }
+
+  </style>
+</head>
+<body>
+
+<!-- ===== BACK LINK ===== -->
+<a href="../index.html" class="back-link">
+  <i class="ph ph-arrow-left"></i> All Sections
+</a>
+
+<!-- ===== PROGRESS DOTS ===== -->
+<div class="progress-dots">
+  <div class="dot active" data-tip="Intro" onclick="jumpTo('hero')"></div>
+  <div class="dot" data-tip="The Problem" onclick="jumpTo('datacenter')"></div>
+  <div class="dot" data-tip="Quantum 101" onclick="jumpTo('qubit')"></div>
+  <div class="dot" data-tip="Architecture" onclick="jumpTo('architecture')"></div>
+  <div class="dot" data-tip="Scale" onclick="jumpTo('wright')"></div>
+</div>
+
+<!-- ================================================================
+     SECTION 0 — HERO
+================================================================ -->
+<section id="hero" class="slide">
+  <div class="glow gl1"></div>
+  <div class="glow gl2"></div>
+
+  <div class="hero-chip">
+    <i class="ph-bold ph-presentation-chart"></i>
+    Introduction · ~5 minutes
+  </div>
+
+  <div class="hero-grid">
+    <div>
+      <p class="sec-tag">The Problem</p>
+      <h1>
+        Your data center has<br>
+        a memory scheduling<br>
+        problem.
+      </h1>
+      <p class="hero-desc">
+        Modern data centers mix fast DRAM with slower CXL-attached memory.
+        Deciding which tasks go where is an NP-hard optimization problem.
+        Classical algorithms guess. We built a system that uses quantum
+        computing to explore every possible assignment at once.
+      </p>
+    </div>
+
+    <div class="hero-canvas-card">
+      <div class="hero-canvas-label">MEMORY MESH · TASK SCHEDULING SIMULATION</div>
+      <canvas id="heroCanvas" width="460" height="280"></canvas>
+      <div class="canvas-legend">
+        <span>
+          <span style="color:var(--accent);">●</span> DRAM (100ns)
+          &nbsp;&nbsp;
+          <span style="color:var(--amber);">●</span> CXL (300ns)
+          &nbsp;&nbsp;
+          <span style="color:#6366F1;">●</span> Task
+        </span>
+        <span class="mono" style="color:var(--green); font-weight:600;">● LIVE</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     SECTION 1 — THE DATACENTER PROBLEM
+================================================================ -->
+<section id="datacenter" class="slide">
+  <p class="sec-tag reveal">Section 1</p>
+  <h2 class="reveal">What happens when 1,000 tasks<br>fight for the same memory?</h2>
+  <p class="reveal" style="max-width:600px; font-size:16px; margin-bottom:12px;">
+    A data center runs hundreds of workloads simultaneously. Each task needs memory —
+    but fast DRAM is limited. When too many tasks get routed to the same memory tier,
+    everything slows down. Watch it happen in real time.
+  </p>
+
+  <div class="dc-layout reveal">
+    <!-- Left: story narration -->
+    <div class="dc-narration">
+      <div class="narration-step active" data-step="0" onclick="setDCStep(0)">
+        <div class="ns-title"><i class="ph-bold ph-traffic-sign" style="margin-right:6px;"></i>Normal load — 8 tasks</div>
+        <div class="ns-body">
+          A small cluster with 8 tasks. Classical scheduling (FCFS — first come, first served)
+          assigns them in arrival order. DRAM fills up, remaining tasks go to CXL.
+          Everything works fine. Latency is manageable.
+        </div>
+      </div>
+
+      <div class="narration-step" data-step="1" onclick="setDCStep(1)">
+        <div class="ns-title"><i class="ph-bold ph-warning" style="margin-right:6px;"></i>Scale to 100 tasks</div>
+        <div class="ns-body">
+          Now DRAM is overwhelmed. FCFS has no intelligence — it doesn't know which tasks
+          are memory-sensitive. High-priority tasks get stuck on slow CXL.
+          The red lines appear: congestion, wasted cycles, SLA violations.
+        </div>
+      </div>
+
+      <div class="narration-step" data-step="2" onclick="setDCStep(2)">
+        <div class="ns-title"><i class="ph-bold ph-fire" style="margin-right:6px;"></i>Scale to 1,000 tasks</div>
+        <div class="ns-body">
+          At this scale, even smart greedy heuristics break. There are 2¹⁰⁰⁰ possible
+          assignments — more combinations than atoms in the universe. Classical algorithms
+          can only sample a tiny fraction. The data center is gridlocked.
+        </div>
+      </div>
+
+      <div class="narration-step" data-step="3" onclick="setDCStep(3)">
+        <div class="ns-title"><i class="ph-bold ph-atom" style="margin-right:6px;"></i>Quantum: all green lanes</div>
+        <div class="ns-body">
+          RQAOA encodes every task into a quantum state. Through superposition, it
+          explores all possible memory assignments simultaneously. The result: an
+          optimised assignment where sensitive tasks get DRAM and insensitive tasks
+          gracefully use CXL. All green.
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: live canvas -->
+    <div class="dc-canvas-card">
+      <div class="dc-canvas-header">
+        <span>DATA CENTER MEMORY ROUTING</span>
+        <div class="dc-controls">
+          <button class="btn btn-sm btn-red" id="dcClassicalBtn" onclick="setDCStep(2)">
+            <i class="ph-bold ph-x-circle"></i> Classical
+          </button>
+          <button class="btn btn-sm btn-green" id="dcQuantumBtn" onclick="setDCStep(3)">
+            <i class="ph-bold ph-atom"></i> Quantum
+          </button>
+        </div>
+      </div>
+      <canvas id="dcCanvas" width="520" height="400"></canvas>
+      <div class="dc-metrics">
+        <div class="dc-metric">
+          <div class="dc-metric-val" id="dcTasksVal" style="color:var(--text);">8</div>
+          <div class="dc-metric-label">Tasks</div>
+        </div>
+        <div class="dc-metric">
+          <div class="dc-metric-val" id="dcCongVal" style="color:var(--green);">Low</div>
+          <div class="dc-metric-label">Congestion</div>
+        </div>
+        <div class="dc-metric">
+          <div class="dc-metric-val" id="dcLatVal" style="color:var(--text);">100ns</div>
+          <div class="dc-metric-label">Avg Latency</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     SECTION 2 — QUBIT 101
+================================================================ -->
+<section id="qubit" class="slide">
+  <p class="sec-tag reveal">Section 2</p>
+  <h2 class="reveal">A classical bit vs. a qubit</h2>
+  <p class="reveal" style="max-width:540px; font-size:16px;">
+    To understand why quantum helps, you need to see the difference between
+    how classical and quantum computers store information.
+  </p>
+
+  <div class="qubit-layout reveal">
+    <!-- Classical bit -->
+    <div class="bit-box">
+      <div class="bit-box-title">Classical Bit</div>
+      <div class="switch-track" id="bitSwitch" onclick="toggleBit()">
+        <div class="switch-thumb" id="bitThumb">0</div>
+      </div>
+      <div class="bit-label" id="bitLabel">State: 0</div>
+      <div class="bit-label-hint">Click to flip. It's always exactly one value.</div>
+    </div>
+
+    <!-- Qubit — Schrödinger's box -->
+    <div class="qubit-box-outer">
+      <div class="bit-box-title">Qubit (Schrödinger's Box)</div>
+      <div class="schrodinger-box" id="sbox" onclick="openBox()">
+        <div class="box-container">
+          <!-- The spinning value inside (visible through translucent box) -->
+          <div class="box-shell" id="boxShell">
+            <div class="spin-value" id="spinVal">0</div>
+          </div>
+          <!-- The lid — click to open -->
+          <div class="box-lid" id="boxLid">
+            <i class="ph-bold ph-package"></i>
+            <span>Click to observe</span>
+          </div>
+        </div>
+      </div>
+      <div class="qubit-label" id="qubitLabel">State: |0⟩ + |1⟩ (superposition)</div>
+      <div class="qubit-label-hint" id="qubitHint">The value is both 0 AND 1 until you look.</div>
+      <button class="qubit-reset" id="qubitReset" onclick="resetBox()">
+        <i class="ph ph-arrow-counter-clockwise"></i> Reset
+      </button>
+    </div>
+  </div>
+
+  <div class="qubit-explain reveal">
+    <div class="callout">
+      <strong>Why does this matter for scheduling?</strong><br>
+      With 8 tasks, there are 2⁸ = 256 possible DRAM/CXL assignments. A classical
+      computer tries them one at a time. A quantum computer, using qubits, represents
+      all 256 states simultaneously and finds the best one through interference —
+      amplifying good solutions and cancelling bad ones. That's what RQAOA does.
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     SECTION 3 — ARCHITECTURE WALKTHROUGH
+================================================================ -->
+<section id="architecture" class="slide">
+  <p class="sec-tag reveal">Section 3</p>
+  <h2 class="reveal">System architecture — step by step</h2>
+  <p class="reveal" style="max-width:600px; font-size:16px; margin-bottom:8px;">
+    This is exactly how the system is built. Each stage feeds the next.
+    Click through to see the data flow from a CLI command to optimised results.
+  </p>
+
+  <div class="arch-walkthrough reveal">
+    <div class="arch-controls">
+      <button class="btn btn-sm btn-outline" id="archPrev" onclick="archStep(-1)">
+        <i class="ph-bold ph-arrow-left"></i> Prev
+      </button>
+      <button class="btn btn-sm btn-accent" id="archNext" onclick="archStep(1)">
+        Next <i class="ph-bold ph-arrow-right"></i>
+      </button>
+      <span class="arch-step-label" id="archStepLabel">Step 1 of 6</span>
+    </div>
+
+    <div class="arch-pipeline" id="archPipeline">
+
+      <div class="arch-stage active" data-stage="0">
+        <div class="arch-stage-left">
+          <div class="arch-stage-icon"><i class="ph-bold ph-terminal-window"></i></div>
+          <div class="arch-stage-name">main.py</div>
+          <div class="arch-stage-files">CLI entry point</div>
+        </div>
+        <div>
+          <p class="arch-stage-desc">
+            The user runs <code>python main.py --scheduler rqaoa</code>. This parses
+            the scheduler flag and passes control to the benchmark orchestrator.
+            Supports: <code>fcfs</code>, <code>rr</code>, <code>greedy</code>,
+            <code>greedy_priority</code>, <code>rqaoa</code>, or <code>all</code>.
+          </p>
+          <div class="arch-stage-detail">
+            <strong>Challenge we solved:</strong> Getting a single entry point to work
+            across both classical and quantum paths required designing a clean
+            scheduler interface (<code>BaseScheduler</code>) that all 5 algorithms
+            implement identically — so the orchestrator doesn't care which one it's running.
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector"></div>
+
+      <div class="arch-stage" data-stage="1">
+        <div class="arch-stage-left">
+          <div class="arch-stage-icon"><i class="ph-bold ph-flow-arrow"></i></div>
+          <div class="arch-stage-name">run_benchmarks.py</div>
+          <div class="arch-stage-files">Benchmark orchestrator</div>
+        </div>
+        <div>
+          <p class="arch-stage-desc">
+            Loads the canonical 8-task set from <code>tasks.py</code>, runs each
+            selected scheduler, collects assignments, then hands each assignment
+            to the execution layer. This is the central control loop of the
+            entire system.
+          </p>
+          <div class="arch-stage-detail">
+            <strong>Design decision:</strong> We separated "scheduling" from
+            "execution" — the schedulers only produce a <code>{'{'}task_id: "DRAM" | "CXL"{'}'}</code>
+            dict. They never touch subprocesses. This made the system modular and
+            testable: you can unit-test schedulers without launching any real processes.
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector"></div>
+
+      <div class="arch-stage" data-stage="2">
+        <div class="arch-stage-left">
+          <div class="arch-stage-icon"><i class="ph-bold ph-list-checks"></i></div>
+          <div class="arch-stage-name">Classical Schedulers</div>
+          <div class="arch-stage-files">FCFS · Round Robin · Greedy · Priority</div>
+        </div>
+        <div>
+          <p class="arch-stage-desc">
+            Four classical baselines, each taking a different approach: arrival order (FCFS),
+            alternating assignment (Round Robin), sensitivity-sorted (Greedy), and
+            priority × sensitivity composite (Priority-Weighted). All output the same
+            <code>{'{'}task_id: "DRAM" | "CXL"{'}'}</code> dict format.
+          </p>
+          <div class="arch-stage-detail">
+            <strong>Key insight:</strong> Even the best classical scheduler (Greedy) only
+            considers one dimension at a time. It can't jointly optimise memory sensitivity,
+            priority, and capacity constraints simultaneously — that's where QUBO shines.
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector"></div>
+
+      <div class="arch-stage" data-stage="3">
+        <div class="arch-stage-left">
+          <div class="arch-stage-icon"><i class="ph-bold ph-atom"></i></div>
+          <div class="arch-stage-name">Quantum (RQAOA)</div>
+          <div class="arch-stage-files">qubo_builder → qubo_converter → rqaoa_runner → result_parser</div>
+        </div>
+        <div>
+          <p class="arch-stage-desc">
+            The quantum path: First, <code>qubo_builder.py</code> constructs an 8×8
+            cost matrix encoding latency penalties and DRAM capacity constraints.
+            <code>rqaoa_runner.py</code> feeds this to the RQAOA optimizer (via OpenQAOA
+            on the Qiskit Aer simulator). The output bitstring is decoded by
+            <code>result_parser.py</code> into the same assignment dict.
+          </p>
+          <div class="arch-stage-detail">
+            <strong>Challenge we solved:</strong> OpenQAOA and our QUBO builder use
+            different matrix formats. We built <code>qubo_converter.py</code> to
+            translate between them — a deceptively tricky format-bridging step that
+            had to preserve coefficient signs exactly, or the optimizer would
+            minimise the wrong objective.
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector"></div>
+
+      <div class="arch-stage" data-stage="4">
+        <div class="arch-stage-left">
+          <div class="arch-stage-icon"><i class="ph-bold ph-gear-six"></i></div>
+          <div class="arch-stage-name">Execution Layer</div>
+          <div class="arch-stage-files">task_orchestrator.py · task_runner.py</div>
+        </div>
+        <div>
+          <p class="arch-stage-desc">
+            Takes each scheduler's assignment dict and launches real OS subprocesses.
+            Each task runner allocates memory, performs work, and simulates the
+            CXL 3× latency penalty via calibrated <code>time.sleep()</code> calls.
+            DRAM tasks run at baseline speed; CXL tasks are visibly slower.
+          </p>
+          <div class="arch-stage-detail">
+            <strong>Challenge we solved:</strong> AWS EC2 doesn't support
+            <code>numactl</code> NUMA-faking (<code>CONFIG_NUMA_EMU</code> is not
+            compiled into Ubuntu kernels). We pivoted to software-level latency
+            simulation inside <code>task_runner.py</code> — injecting precise
+            per-access delays to replicate the 3× CXL penalty faithfully.
+            This decision is documented in <code>docs/numa_verification.md</code>.
+          </div>
+        </div>
+      </div>
+
+      <div class="arch-connector"></div>
+
+      <div class="arch-stage" data-stage="5">
+        <div class="arch-stage-left">
+          <div class="arch-stage-icon"><i class="ph-bold ph-chart-bar"></i></div>
+          <div class="arch-stage-name">Evaluation</div>
+          <div class="arch-stage-files">metrics.py · graphs.py → results/</div>
+        </div>
+        <div>
+          <p class="arch-stage-desc">
+            Computes average completion time, makespan, total latency cost, and DRAM
+            utilisation for each scheduler. Generates comparative bar charts and
+            saves everything to <code>results/</code> as CSVs and PNGs.
+          </p>
+          <div class="arch-stage-detail">
+            <strong>Output:</strong> <code>all_schedulers_summary.csv</code> with one
+            row per scheduler, and <code>execution_log.csv</code> with one row per task.
+            Four publication-ready plots comparing all five scheduling strategies.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     SECTION 4 — WRIGHT BROTHERS MOMENT
+================================================================ -->
+<section id="wright" class="slide">
+  <p class="sec-tag reveal">Section 4</p>
+  <h2 class="reveal">"But it's only 8 tasks."</h2>
+
+  <div class="wright-content reveal">
+    <p style="font-size:16px; max-width:540px; margin: 0 auto;">
+      Yes. We scheduled 8 tasks. Let's talk about why that matters.
+    </p>
+
+    <div class="wright-video-card">
+      <div class="wright-video-placeholder" id="wrightVideoSlot">
+        <i class="ph ph-video-camera"></i>
+        <span>Wright Brothers video — will be embedded here</span>
+        <span style="font-size:11px; color:var(--text-muted);">Provide the video file to wire it in</span>
+      </div>
+    </div>
+
+    <p class="wright-quote">
+      "The first flight lasted 12 seconds and covered 120 feet.<br>
+      Nobody asked the Wright Brothers to fly across the Atlantic that day."
+    </p>
+
+    <div class="wright-scale">
+      <div class="wright-scale-card">
+        <div class="wright-scale-val" style="color:var(--accent);">8</div>
+        <div class="wright-scale-label">Tasks today</div>
+      </div>
+      <div class="wright-scale-card">
+        <div class="wright-scale-val" style="color:var(--text);">2⁸</div>
+        <div class="wright-scale-label">256 states</div>
+      </div>
+      <div class="wright-scale-card">
+        <div class="wright-scale-val" style="color:var(--red);">1,000+</div>
+        <div class="wright-scale-label">Real DC tasks</div>
+      </div>
+      <div class="wright-scale-card">
+        <div class="wright-scale-val" style="color:var(--red);">2¹⁰⁰⁰</div>
+        <div class="wright-scale-label">Combinations</div>
+      </div>
+    </div>
+
+    <p class="wright-footer-msg">
+      At 1,000+ tasks, classical schedulers face 2¹⁰⁰⁰ possible assignments — a
+      number so large it has more digits than atoms in the observable universe.
+      Greedy heuristics sample a negligible fraction. Quantum algorithms like RQAOA
+      explore the full solution space through superposition and interference.
+      That's the value: not 8 tasks, but the proof that the approach works.
+    </p>
+
+    <a href="../smarth/index.html" class="next-section-card">
+      <i class="ph-bold ph-arrow-right"></i>
+      Next: Classical Schedulers
+    </a>
+  </div>
+</section>
+
+
+<!-- ================================================================
+     SCRIPTS
+================================================================ -->
+<script>
+/* ===== UTILITIES ===== */
+function jumpTo(id) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* Scroll reveal */
+const revealObs = new IntersectionObserver((es) => {
+  es.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12 });
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+/* Progress dots */
+const SECTIONS = ['hero','datacenter','qubit','architecture','wright'];
+const dots = document.querySelectorAll('.dot');
+const secObs = new IntersectionObserver((es) => {
+  es.forEach(e => {
+    if (!e.isIntersecting) return;
+    const idx = SECTIONS.indexOf(e.target.id);
+    if (idx < 0) return;
+    dots.forEach((d,i) => d.classList.toggle('active', i===idx));
+  });
+}, { threshold: 0.4 });
+SECTIONS.forEach(id => { const el = document.getElementById(id); if (el) secObs.observe(el); });
+
+
+/* ===== HERO CANVAS — particle network ===== */
+(function() {
+  const c = document.getElementById('heroCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d'), W = c.width, H = c.height;
+
+  const NODES = [
+    { x:50, y:60, type:'cpu', label:'CPU 0' },
+    { x:150,y:40, type:'cpu', label:'CPU 1' },
+    { x:250,y:60, type:'cpu', label:'CPU 2' },
+    { x:50, y:180,type:'cpu', label:'CPU 3' },
+    { x:150,y:200,type:'cpu', label:'CPU 4' },
+    { x:250,y:180,type:'cpu', label:'CPU 5' },
+    { x:390,y:80, type:'dram',label:'DRAM' },
+    { x:390,y:200,type:'cxl', label:'CXL' },
+  ];
+  const EDGES = [[0,6],[1,6],[2,6],[3,7],[4,7],[5,7],[0,1],[1,2],[3,4],[4,5]];
+  const particles = [
+    { edge:[0,6],t:0,sp:.012,col:'#4338CA' },
+    { edge:[1,6],t:.3,sp:.010,col:'#4338CA' },
+    { edge:[2,6],t:.6,sp:.013,col:'#4338CA' },
+    { edge:[3,7],t:.1,sp:.004,col:'#D97706' },
+    { edge:[4,7],t:.5,sp:.004,col:'#D97706' },
+    { edge:[5,7],t:.8,sp:.004,col:'#D97706' },
+  ];
+
+  function lerp(a,b,t) { return {x:a.x+(b.x-a.x)*t, y:a.y+(b.y-a.y)*t}; }
+
+  function draw() {
+    ctx.clearRect(0,0,W,H);
+    // edges
+    EDGES.forEach(([a,b])=>{
+      const na=NODES[a],nb=NODES[b];
+      const isDRAM = nb.type==='dram'||na.type==='dram';
+      const isCXL  = nb.type==='cxl'||na.type==='cxl';
+      ctx.beginPath(); ctx.moveTo(na.x,na.y); ctx.lineTo(nb.x,nb.y);
+      ctx.strokeStyle = isDRAM?'rgba(67,56,202,.12)':isCXL?'rgba(217,119,6,.12)':'rgba(148,163,184,.1)';
+      ctx.lineWidth = 1.5; ctx.setLineDash(isDRAM||isCXL?[5,5]:[]); ctx.stroke(); ctx.setLineDash([]);
+    });
+    // nodes
+    NODES.forEach(n=>{
+      const col = n.type==='dram'?'#4338CA':n.type==='cxl'?'#D97706':'#6B7280';
+      const bg  = n.type==='dram'?'#EEF2FF':n.type==='cxl'?'#FFFBEB':'#F3F4F6';
+      const r   = n.type==='cpu'?14:22;
+      ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
+      ctx.fillStyle=bg; ctx.fill();
+      ctx.strokeStyle=col; ctx.lineWidth=n.type==='cpu'?1.5:2; ctx.stroke();
+      ctx.fillStyle=col; ctx.font=n.type==='cpu'?'600 8px Inter':'700 9px Outfit';
+      ctx.textAlign='center'; ctx.textBaseline='middle';
+      ctx.fillText(n.label,n.x,n.y);
+    });
+    // particles
+    particles.forEach(p=>{
+      p.t=(p.t+p.sp)%1;
+      const na=NODES[p.edge[0]],nb=NODES[p.edge[1]],pos=lerp(na,nb,p.t);
+      for(let i=1;i<=4;i++){const tp=Math.max(0,p.t-i*.02),pp=lerp(na,nb,tp);
+        ctx.beginPath();ctx.arc(pp.x,pp.y,2.5*(1-i/5),0,Math.PI*2);
+        ctx.fillStyle=p.col+Math.floor((1-i/5)*60).toString(16).padStart(2,'0');ctx.fill();}
+      ctx.shadowColor=p.col;ctx.shadowBlur=8;
+      ctx.beginPath();ctx.arc(pos.x,pos.y,4,0,Math.PI*2);ctx.fillStyle=p.col;ctx.fill();
+      ctx.shadowBlur=0;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+
+/* ===== DATACENTER CANVAS ===== */
+(function() {
+  const c = document.getElementById('dcCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d'), W = c.width, H = c.height;
+
+  /* --- DATA CENTER SIMULATION ---
+     Realistic scenario: servers on left, memory banks on right.
+     Tasks travel from servers to memory tiers via network links.
+     Classical = poor routing → congestion (red lines).
+     Quantum   = optimised routing → smooth (green lines).
+  */
+
+  // Memory banks
+  const DRAM_BANK = { x: 420, y: 100, w: 80, h: 60, label: 'DRAM', latency: '100ns' };
+  const CXL_BANK  = { x: 420, y: 280, w: 80, h: 60, label: 'CXL',  latency: '300ns' };
+
+  // Switch / router in the middle
+  const SWITCH = { x: 260, y: 190, r: 18 };
+
+  // Servers on left
+  const SERVERS = [];
+  for (let i = 0; i < 6; i++) {
+    SERVERS.push({
+      x: 60, y: 50 + i * 60,
+      label: 'S' + i
+    });
+  }
+
+  // Sim state
+  let mode = 'normal';    // 'normal' | 'overload' | 'gridlock' | 'quantum'
+  let taskCount = 8;
+  let tasks = [];
+  let animFrame = 0;
+
+  function createTasks(count, isQuantum) {
+    const arr = [];
+    for (let i = 0; i < count; i++) {
+      const server = SERVERS[i % SERVERS.length];
+      let target;
+      if (isQuantum) {
+        // Quantum: sensitive tasks → DRAM, insensitive → CXL (optimised)
+        const sensitivity = Math.random();
+        target = sensitivity > 0.4 ? DRAM_BANK : CXL_BANK;
+      } else {
+        // Classical FCFS: fill DRAM first, overflow to CXL
+        target = (i < count * 0.3) ? DRAM_BANK : CXL_BANK;
+        // At overload, more tasks fight for DRAM
+        if (count > 50) target = (Math.random() < 0.6) ? DRAM_BANK : CXL_BANK;
+      }
+
+      arr.push({
+        sx: server.x + 30, sy: server.y,
+        tx: target.x, ty: target.y + target.h/2,
+        mx: SWITCH.x, my: SWITCH.y,
+        t: Math.random(),
+        speed: isQuantum ? 0.003 + Math.random()*0.003 :
+               count > 100 ? 0.0005 + Math.random()*0.001 :
+               count > 50  ? 0.001 + Math.random()*0.002 :
+               0.003 + Math.random()*0.003,
+        isDRAM: target === DRAM_BANK,
+        congested: !isQuantum && count > 50,
+        phase: 0, // 0=server→switch, 1=switch→mem
+      });
+    }
+    return arr;
+  }
+
+  tasks = createTasks(8, false);
+
+  window.setDCStep = function(step) {
+    document.querySelectorAll('.narration-step').forEach((s,i) =>
+      s.classList.toggle('active', i === step));
+
+    const tv = document.getElementById('dcTasksVal');
+    const cv = document.getElementById('dcCongVal');
+    const lv = document.getElementById('dcLatVal');
+
+    switch(step) {
+      case 0:
+        mode = 'normal'; taskCount = 8;
+        tasks = createTasks(8, false);
+        tv.textContent = '8'; tv.style.color = 'var(--text)';
+        cv.textContent = 'Low'; cv.style.color = 'var(--green)';
+        lv.textContent = '~150ns'; lv.style.color = 'var(--text)';
+        break;
+      case 1:
+        mode = 'overload'; taskCount = 100;
+        tasks = createTasks(80, false);
+        tv.textContent = '100'; tv.style.color = 'var(--amber)';
+        cv.textContent = 'High'; cv.style.color = 'var(--amber)';
+        lv.textContent = '~260ns'; lv.style.color = 'var(--amber)';
+        break;
+      case 2:
+        mode = 'gridlock'; taskCount = 1000;
+        tasks = createTasks(150, false);
+        tv.textContent = '1,000'; tv.style.color = 'var(--red)';
+        cv.textContent = 'Critical'; cv.style.color = 'var(--red)';
+        lv.textContent = '~290ns'; lv.style.color = 'var(--red)';
+        break;
+      case 3:
+        mode = 'quantum'; taskCount = 1000;
+        tasks = createTasks(150, true);
+        tv.textContent = '1,000'; tv.style.color = 'var(--accent)';
+        cv.textContent = 'Optimised'; cv.style.color = 'var(--green)';
+        lv.textContent = '~120ns'; lv.style.color = 'var(--green)';
+        break;
+    }
+  };
+
+  function drawDC() {
+    ctx.clearRect(0, 0, W, H);
+    animFrame++;
+
+    // Background grid
+    ctx.strokeStyle = 'rgba(229,231,235,.5)';
+    ctx.lineWidth = 0.5;
+    for (let x = 0; x < W; x += 30) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = 0; y < H; y += 30) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+    // Draw servers
+    SERVERS.forEach(s => {
+      ctx.fillStyle = '#F3F4F6';
+      ctx.strokeStyle = '#D1D5DB';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.roundRect(s.x - 25, s.y - 15, 50, 30, 6);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#6B7280';
+      ctx.font = '600 10px Inter';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(s.label, s.x, s.y);
+    });
+
+    // Draw switch
+    ctx.fillStyle = '#F9FAFB';
+    ctx.strokeStyle = '#9CA3AF';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(SWITCH.x, SWITCH.y, SWITCH.r, 0, Math.PI*2);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#6B7280';
+    ctx.font = '700 9px Outfit';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('SWITCH', SWITCH.x, SWITCH.y);
+
+    // Draw memory banks
+    [DRAM_BANK, CXL_BANK].forEach(bank => {
+      const isDRAM = bank === DRAM_BANK;
+      ctx.fillStyle = isDRAM ? '#EEF2FF' : '#FFFBEB';
+      ctx.strokeStyle = isDRAM ? '#4338CA' : '#D97706';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(bank.x - bank.w/2, bank.y - bank.h/2, bank.w, bank.h, 8);
+      ctx.fill(); ctx.stroke();
+
+      ctx.fillStyle = isDRAM ? '#4338CA' : '#D97706';
+      ctx.font = '700 11px Outfit';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(bank.label, bank.x, bank.y - 8);
+      ctx.font = '500 9px JetBrains Mono';
+      ctx.fillText(bank.latency, bank.x, bank.y + 8);
+    });
+
+    // Draw connections: servers → switch → memory
+    ctx.setLineDash([4,4]);
+    SERVERS.forEach(s => {
+      ctx.beginPath(); ctx.moveTo(s.x+25, s.y); ctx.lineTo(SWITCH.x-SWITCH.r, SWITCH.y);
+      ctx.strokeStyle = 'rgba(156,163,175,.2)'; ctx.lineWidth = 1; ctx.stroke();
+    });
+    // switch → DRAM
+    ctx.beginPath(); ctx.moveTo(SWITCH.x+SWITCH.r, SWITCH.y);
+    ctx.lineTo(DRAM_BANK.x-DRAM_BANK.w/2, DRAM_BANK.y+DRAM_BANK.h/2);
+    ctx.strokeStyle = 'rgba(67,56,202,.15)'; ctx.lineWidth = 1.5; ctx.stroke();
+    // switch → CXL
+    ctx.beginPath(); ctx.moveTo(SWITCH.x+SWITCH.r, SWITCH.y);
+    ctx.lineTo(CXL_BANK.x-CXL_BANK.w/2, CXL_BANK.y-CXL_BANK.h/2);
+    ctx.strokeStyle = 'rgba(217,119,6,.15)'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw task particles
+    tasks.forEach(tk => {
+      tk.t += tk.speed;
+      if (tk.t > 1) tk.t = 0;
+
+      let px, py;
+      if (tk.t < 0.5) {
+        // Phase 0: server → switch
+        const tt = tk.t * 2;
+        px = tk.sx + (tk.mx - tk.sx) * tt;
+        py = tk.sy + (tk.my - tk.sy) * tt;
+      } else {
+        // Phase 1: switch → memory
+        const tt = (tk.t - 0.5) * 2;
+        px = tk.mx + (tk.tx - tk.mx) * tt;
+        py = tk.my + (tk.ty - tk.my) * tt;
+      }
+
+      let color;
+      if (mode === 'quantum') {
+        color = '#059669'; // all green
+      } else if (tk.congested) {
+        color = mode === 'gridlock' ? '#DC2626' : '#D97706';
+      } else {
+        color = tk.isDRAM ? '#4338CA' : '#D97706';
+      }
+
+      // Trail
+      const trail = mode === 'quantum' ? 3 : tk.congested ? 6 : 3;
+      for (let i = 1; i <= trail; i++) {
+        const tt2 = Math.max(0, tk.t - i * 0.015);
+        let tx2, ty2;
+        if (tt2 < 0.5) {
+          const t2 = tt2*2; tx2=tk.sx+(tk.mx-tk.sx)*t2; ty2=tk.sy+(tk.my-tk.sy)*t2;
+        } else {
+          const t2=(tt2-.5)*2; tx2=tk.mx+(tk.tx-tk.mx)*t2; ty2=tk.my+(tk.ty-tk.my)*t2;
+        }
+        ctx.beginPath(); ctx.arc(tx2,ty2,2*(1-i/(trail+1)),0,Math.PI*2);
+        ctx.fillStyle = color + Math.floor((1-i/(trail+1))*40).toString(16).padStart(2,'0');
+        ctx.fill();
+      }
+
+      // Head
+      const radius = mode === 'gridlock' && tk.congested ? 2.5 : 3.5;
+      ctx.shadowColor = color; ctx.shadowBlur = 6;
+      ctx.beginPath(); ctx.arc(px,py,radius,0,Math.PI*2);
+      ctx.fillStyle = color; ctx.fill();
+      ctx.shadowBlur = 0;
+    });
+
+    // Congestion overlay for gridlock
+    if (mode === 'gridlock') {
+      ctx.fillStyle = 'rgba(220,38,38,.06)';
+      ctx.fillRect(0,0,W,H);
+      // Warning text
+      if (animFrame % 60 < 30) {
+        ctx.fillStyle = 'rgba(220,38,38,.7)';
+        ctx.font = '700 11px Outfit';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚠ MEMORY CONGESTION — SLA VIOLATION', W/2, H-12);
+      }
+    }
+
+    if (mode === 'quantum') {
+      ctx.fillStyle = 'rgba(5,150,105,.7)';
+      ctx.font = '600 10px JetBrains Mono';
+      ctx.textAlign = 'left';
+      ctx.fillText('RQAOA: optimal routing active', 8, H-10);
+    }
+
+    requestAnimationFrame(drawDC);
+  }
+  drawDC();
+})();
+
+
+/* ===== CLASSICAL BIT TOGGLE ===== */
+let bitState = 0;
+function toggleBit() {
+  bitState = 1 - bitState;
+  const track = document.getElementById('bitSwitch');
+  const thumb = document.getElementById('bitThumb');
+  const label = document.getElementById('bitLabel');
+  track.classList.toggle('on', bitState === 1);
+  thumb.textContent = bitState;
+  label.textContent = 'State: ' + bitState;
+}
+
+
+/* ===== QUBIT — SCHRÖDINGER'S BOX ===== */
+let boxOpen = false;
+let spinInterval;
+
+// Spin the value between 0 and 1 rapidly
+function startSpin() {
+  const sv = document.getElementById('spinVal');
+  spinInterval = setInterval(() => {
+    sv.textContent = Math.random() < 0.5 ? '0' : '1';
+  }, 80);
+}
+startSpin();
+
+function openBox() {
+  if (boxOpen) return;
+  boxOpen = true;
+  clearInterval(spinInterval);
+
+  const lid = document.getElementById('boxLid');
+  const shell = document.getElementById('boxShell');
+  const sv = document.getElementById('spinVal');
+  const label = document.getElementById('qubitLabel');
+  const hint = document.getElementById('qubitHint');
+  const reset = document.getElementById('qubitReset');
+
+  lid.classList.add('open');
+  shell.classList.add('opened');
+  sv.classList.add('collapsed');
+
+  // Collapse to a random value
+  const result = Math.random() < 0.5 ? '0' : '1';
+  sv.textContent = result;
+
+  label.textContent = 'State: |' + result + '⟩ (collapsed!)';
+  hint.textContent = 'The act of observation forced a definite state.';
+  reset.style.display = 'inline-flex';
+}
+
+function resetBox() {
+  boxOpen = false;
+  const lid = document.getElementById('boxLid');
+  const shell = document.getElementById('boxShell');
+  const sv = document.getElementById('spinVal');
+  const label = document.getElementById('qubitLabel');
+  const hint = document.getElementById('qubitHint');
+  const reset = document.getElementById('qubitReset');
+
+  lid.classList.remove('open');
+  shell.classList.remove('opened');
+  sv.classList.remove('collapsed');
+  label.textContent = 'State: |0⟩ + |1⟩ (superposition)';
+  hint.textContent = 'The value is both 0 AND 1 until you look.';
+  reset.style.display = 'none';
+  startSpin();
+}
+
+
+/* ===== ARCHITECTURE WALKTHROUGH ===== */
+let archIdx = 0;
+const archStages = document.querySelectorAll('.arch-stage');
+const archLabel = document.getElementById('archStepLabel');
+
+function archUpdate() {
+  archStages.forEach((s, i) => s.classList.toggle('active', i === archIdx));
+  archLabel.textContent = `Step ${archIdx + 1} of ${archStages.length}`;
+  // Scroll stage into view
+  archStages[archIdx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function archStep(dir) {
+  archIdx = Math.max(0, Math.min(archStages.length - 1, archIdx + dir));
+  archUpdate();
+}
+
+archUpdate();
+</script>
+</body>
+</html>
