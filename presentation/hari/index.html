@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Introduction | Quantum CXL Scheduler</title>
-  <meta name="description" content="Introduction: data center memory bottleneck, system architecture, and the scale argument.">
+  <meta name="description" content="Introduction: data center memory bottleneck, quantum computing fundamentals, system architecture, and the scale argument.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
@@ -332,7 +332,181 @@
       letter-spacing: .05em;
     }
 
+    /* ============================================
+       SECTION 2 — QUBIT DEMO
+       (Part 4 will fill the interactive box)
+    ============================================ */
+    #qubit {
+      border-top: 1px solid var(--border);
+    }
 
+    .qubit-layout {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 60px; align-items: center;
+      margin-top: 36px;
+    }
+
+    /* Classical bit */
+    .bit-box {
+      background: white; border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      padding: 32px; text-align: center;
+    }
+    .bit-box-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px; font-weight: 700;
+      color: var(--text-muted); margin-bottom: 20px;
+      text-transform: uppercase; letter-spacing: .08em;
+    }
+    .switch-track {
+      width: 80px; height: 40px;
+      background: var(--border); border-radius: 40px;
+      margin: 0 auto; position: relative;
+      cursor: pointer; transition: background .3s;
+    }
+    .switch-track.on { background: var(--accent); }
+    .switch-thumb {
+      width: 32px; height: 32px;
+      background: white; border-radius: 50%;
+      box-shadow: var(--shadow-md);
+      position: absolute; top: 4px; left: 4px;
+      transition: left .3s;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px; font-weight: 800;
+    }
+    .switch-track.on .switch-thumb { left: 44px; }
+    .bit-label {
+      margin-top: 16px; font-size: 14px;
+      color: var(--text-sub); font-weight: 600;
+    }
+    .bit-label-hint {
+      font-size: 12px; color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Qubit — Schrödinger's box */
+    .qubit-box-outer {
+      background: white; border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-md);
+      padding: 32px; text-align: center;
+    }
+
+    .schrodinger-box {
+      width: 200px; height: 200px;
+      margin: 0 auto;
+      perspective: 600px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .box-container {
+      width: 100%; height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+    }
+
+    /* The "closed box" — translucent with value spinning inside */
+    .box-shell {
+      position: absolute; inset: 0;
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      background: rgba(67, 56, 202, .04);
+      backdrop-filter: blur(2px);
+      display: flex; align-items: center; justify-content: center;
+      transition: all .5s;
+      overflow: hidden;
+    }
+
+    .box-shell.opened {
+      background: transparent;
+      border-style: dashed;
+      border-color: var(--text-muted);
+    }
+
+    /* Spinning value inside */
+    .spin-value {
+      font-family: 'Outfit', sans-serif;
+      font-size: 64px; font-weight: 900;
+      color: var(--accent);
+      animation: spinDigit 0.3s linear infinite;
+      user-select: none;
+    }
+
+    .spin-value.collapsed {
+      animation: none;
+      font-size: 80px;
+    }
+
+    @keyframes spinDigit {
+      0%   { opacity: 0.8; content: '0'; }
+      50%  { opacity: 0.2; }
+      100% { opacity: 0.8; }
+    }
+
+    /* Lid overlay — frosted glass so you can see the spin through it */
+    .box-lid {
+      position: absolute; inset: -2px;
+      border: 2px solid var(--accent);
+      border-radius: 16px;
+      background: rgba(238, 242, 255, 0.1);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: flex-end;
+      padding-bottom: 20px;
+      gap: 6px;
+      transition: all .5s ease;
+      z-index: 2;
+      cursor: pointer;
+    }
+    .box-lid i {
+      font-size: 22px; color: var(--accent); opacity: .7;
+    }
+    .box-lid span {
+      font-size: 11px; font-weight: 600;
+      color: var(--accent); opacity: .8;
+    }
+    .box-lid.open {
+      transform: rotateX(-120deg) translateY(-60px);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .qubit-label {
+      margin-top: 16px; font-size: 14px;
+      color: var(--text-sub); font-weight: 600;
+    }
+    .qubit-label-hint {
+      font-size: 12px; color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .qubit-reset {
+      margin-top: 12px; font-size: 12px;
+      color: var(--accent); font-weight: 600;
+      cursor: pointer; display: none;
+      background: none; border: none;
+      font-family: 'Inter', sans-serif;
+    }
+    .qubit-reset:hover { text-decoration: underline; }
+
+    .qubit-explain {
+      margin-top: 28px;
+    }
+    .qubit-explain p {
+      font-size: 15px; line-height: 1.8;
+    }
+
+    .callout {
+      background: var(--accent-light);
+      border-left: 3px solid var(--accent);
+      border-radius: 0 var(--r) var(--r) 0;
+      padding: 14px 18px;
+      font-size: 14px; color: var(--text);
+      line-height: 1.7; margin-top: 16px;
+    }
 
     /* ============================================
        SECTION 3 — ARCHITECTURE
@@ -518,6 +692,7 @@
 <div class="progress-dots">
   <div class="dot active" data-tip="Intro" onclick="jumpTo('hero')"></div>
   <div class="dot" data-tip="The Problem" onclick="jumpTo('datacenter')"></div>
+  <div class="dot" data-tip="Quantum 101" onclick="jumpTo('qubit')"></div>
   <div class="dot" data-tip="Architecture" onclick="jumpTo('architecture')"></div>
   <div class="dot" data-tip="Scale" onclick="jumpTo('wright')"></div>
 </div>
@@ -653,14 +828,69 @@
 </section>
 
 
+<!-- ================================================================
+     SECTION 2 — QUBIT 101
+================================================================ -->
+<section id="qubit" class="slide">
+  <p class="sec-tag reveal">Section 2</p>
+  <h2 class="reveal">A classical bit vs. a qubit</h2>
+  <p class="reveal" style="max-width:540px; font-size:16px;">
+    To understand why quantum helps, you need to see the difference between
+    how classical and quantum computers store information.
+  </p>
 
+  <div class="qubit-layout reveal">
+    <!-- Classical bit -->
+    <div class="bit-box">
+      <div class="bit-box-title">Classical Bit</div>
+      <div class="switch-track" id="bitSwitch" onclick="toggleBit()">
+        <div class="switch-thumb" id="bitThumb">0</div>
+      </div>
+      <div class="bit-label" id="bitLabel">State: 0</div>
+      <div class="bit-label-hint">Click to flip. It's always exactly one value.</div>
+    </div>
+
+    <!-- Qubit — Schrödinger's box -->
+    <div class="qubit-box-outer">
+      <div class="bit-box-title">Qubit (Schrödinger's Box)</div>
+      <div class="schrodinger-box" id="sbox" onclick="openBox()">
+        <div class="box-container">
+          <!-- The spinning value inside (visible through translucent box) -->
+          <div class="box-shell" id="boxShell">
+            <div class="spin-value" id="spinVal">0</div>
+          </div>
+          <!-- The lid — click to open -->
+          <div class="box-lid" id="boxLid">
+            <i class="ph-bold ph-package"></i>
+            <span>Click to observe</span>
+          </div>
+        </div>
+      </div>
+      <div class="qubit-label" id="qubitLabel">State: |0⟩ + |1⟩ (superposition)</div>
+      <div class="qubit-label-hint" id="qubitHint">The value is both 0 AND 1 until you look.</div>
+      <button class="qubit-reset" id="qubitReset" onclick="resetBox()">
+        <i class="ph ph-arrow-counter-clockwise"></i> Reset
+      </button>
+    </div>
+  </div>
+
+  <div class="qubit-explain reveal">
+    <div class="callout">
+      <strong>Why does this matter for scheduling?</strong><br>
+      With 8 tasks, there are 2⁸ = 256 possible DRAM/CXL assignments. A classical
+      computer tries them one at a time. A quantum computer, using qubits, represents
+      all 256 states simultaneously and finds the best one through interference,
+      amplifying good solutions and cancelling bad ones. That's what RQAOA does.
+    </div>
+  </div>
+</section>
 
 
 <!-- ================================================================
      SECTION 3 — ARCHITECTURE WALKTHROUGH
 ================================================================ -->
 <section id="architecture" class="slide">
-  <p class="sec-tag reveal">Section 2</p>
+  <p class="sec-tag reveal">Section 3</p>
   <h2 class="reveal">System architecture: step by step</h2>
   <p class="reveal" style="max-width:600px; font-size:16px; margin-bottom:8px;">
     This is exactly how the system is built. Each stage feeds the next.
@@ -826,7 +1056,7 @@
      SECTION 4 — WRIGHT BROTHERS MOMENT
 ================================================================ -->
 <section id="wright" class="slide">
-  <p class="sec-tag reveal">Section 3</p>
+  <p class="sec-tag reveal">Section 4</p>
   <h2 class="reveal">"But it's only 8 tasks."</h2>
 
   <div class="wright-content reveal">
@@ -894,7 +1124,7 @@ const revealObs = new IntersectionObserver((es) => {
 document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
 /* Progress dots */
-const SECTIONS = ['hero','datacenter','architecture','wright'];
+const SECTIONS = ['hero','datacenter','qubit','architecture','wright'];
 const dots = document.querySelectorAll('.dot');
 const secObs = new IntersectionObserver((es) => {
   es.forEach(e => {
@@ -1237,7 +1467,74 @@ SECTIONS.forEach(id => { const el = document.getElementById(id); if (el) secObs.
 })();
 
 
+/* ===== CLASSICAL BIT TOGGLE ===== */
+let bitState = 0;
+function toggleBit() {
+  bitState = 1 - bitState;
+  const track = document.getElementById('bitSwitch');
+  const thumb = document.getElementById('bitThumb');
+  const label = document.getElementById('bitLabel');
+  track.classList.toggle('on', bitState === 1);
+  thumb.textContent = bitState;
+  label.textContent = 'State: ' + bitState;
+}
 
+
+/* ===== QUBIT — SCHRÖDINGER'S BOX ===== */
+let boxOpen = false;
+let spinInterval;
+
+// Spin the value between 0 and 1 rapidly
+function startSpin() {
+  const sv = document.getElementById('spinVal');
+  spinInterval = setInterval(() => {
+    sv.textContent = Math.random() < 0.5 ? '0' : '1';
+  }, 80);
+}
+startSpin();
+
+function openBox() {
+  if (boxOpen) return;
+  boxOpen = true;
+  clearInterval(spinInterval);
+
+  const lid = document.getElementById('boxLid');
+  const shell = document.getElementById('boxShell');
+  const sv = document.getElementById('spinVal');
+  const label = document.getElementById('qubitLabel');
+  const hint = document.getElementById('qubitHint');
+  const reset = document.getElementById('qubitReset');
+
+  lid.classList.add('open');
+  shell.classList.add('opened');
+  sv.classList.add('collapsed');
+
+  // Collapse to a random value
+  const result = Math.random() < 0.5 ? '0' : '1';
+  sv.textContent = result;
+
+  label.textContent = 'State: |' + result + '⟩ (collapsed!)';
+  hint.textContent = 'The act of observation forced a definite state.';
+  reset.style.display = 'inline-flex';
+}
+
+function resetBox() {
+  boxOpen = false;
+  const lid = document.getElementById('boxLid');
+  const shell = document.getElementById('boxShell');
+  const sv = document.getElementById('spinVal');
+  const label = document.getElementById('qubitLabel');
+  const hint = document.getElementById('qubitHint');
+  const reset = document.getElementById('qubitReset');
+
+  lid.classList.remove('open');
+  shell.classList.remove('opened');
+  sv.classList.remove('collapsed');
+  label.textContent = 'State: |0⟩ + |1⟩ (superposition)';
+  hint.textContent = 'The value is both 0 AND 1 until you look.';
+  reset.style.display = 'none';
+  startSpin();
+}
 
 
 /* ===== ARCHITECTURE WALKTHROUGH ===== */
