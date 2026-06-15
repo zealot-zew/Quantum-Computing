@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quantum-Assisted CXL Scheduler — Project Demonstration</title>
+  <meta name="description" content="A Quantum-Assisted Optimization Engine for CXL-Aware Hybrid Memory Scheduling — project demonstration.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+  <style>
+    /* ============ TOKENS ============ */
+    :root {
+      --bg:           #FAF9F6;
+      --bg-card:      #FFFFFF;
+      --text:         #111827;
+      --text-sub:     #4B5563;
+      --text-muted:   #9CA3AF;
+      --border:       #E5E7EB;
+      --accent:       #4338CA;
+      --accent-light: #EEF2FF;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.05);
+      --shadow-md:    0 4px 12px rgba(0,0,0,.06);
+      --shadow-lg:    0 12px 28px rgba(0,0,0,.07);
+      --r:            12px;
+    }
+
+    /* ============ RESET ============ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html {
+      scroll-behavior: smooth;
+      scroll-snap-type: y mandatory;
+    }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ============ HERO ============ */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 40px 48px;
+      position: relative;
+      overflow: hidden;
+      scroll-snap-align: start;
+    }
+
+    /* Subtle ambient glow — single color */
+    .glow {
+      position: absolute; border-radius: 50%;
+      filter: blur(100px); pointer-events: none;
+      background: rgba(67, 56, 202, .06);
+    }
+    .g1 { width: 600px; height: 600px; top: -200px; left: -100px; }
+    .g2 { width: 400px; height: 400px; bottom: -100px; right: -80px; }
+
+    .hero > * { position: relative; z-index: 1; }
+
+    .chip {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: white; border: 1px solid var(--border);
+      border-radius: 40px; padding: 7px 20px;
+      font-size: 13px; font-weight: 500;
+      color: var(--text-sub);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 32px;
+    }
+
+    .chip i { font-size: 15px; color: var(--accent); }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(36px, 5vw, 64px);
+      font-weight: 800; line-height: 1.12;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+
+    .hero-sub {
+      max-width: 620px; margin: 24px auto 0;
+      font-size: 17px; color: var(--text-sub); line-height: 1.8;
+    }
+
+    /* Stats */
+    .stats {
+      display: flex; gap: 16px; justify-content: center;
+      margin-top: 48px; flex-wrap: wrap;
+    }
+
+    .stat {
+      background: white; border: 1px solid var(--border);
+      border-radius: var(--r); padding: 16px 24px;
+      box-shadow: var(--shadow-sm);
+      text-align: center; min-width: 100px;
+    }
+
+    .stat-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 28px; font-weight: 800;
+      color: var(--accent);
+    }
+
+    .stat-label {
+      font-size: 11px; color: var(--text-muted);
+      font-weight: 600; text-transform: uppercase;
+      letter-spacing: .06em; margin-top: 2px;
+    }
+
+    /* Scroll arrow */
+    .scroll-hint {
+      margin-top: 60px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 8px;
+      color: var(--text-muted); font-size: 12px;
+      font-weight: 500;
+    }
+    .scroll-hint i {
+      font-size: 18px;
+      animation: bob 2s ease-in-out infinite;
+    }
+    @keyframes bob {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(6px); }
+    }
+
+    /* ============ SECTION — WHAT WE BUILT ============ */
+    .overview {
+      min-height: 100vh;
+      padding: 80px 60px 100px;
+      max-width: 1100px; margin: 0 auto;
+      scroll-snap-align: start;
+      display: flex; flex-direction: column;
+      justify-content: center;
+    }
+
+    .sec-label {
+      font-size: 12px; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      color: var(--accent);
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 12px;
+    }
+    .sec-label::before {
+      content:''; width: 20px; height: 2px;
+      background: var(--accent);
+    }
+
+    h2 {
+      font-family: 'Outfit', sans-serif;
+      font-size: clamp(26px, 3vw, 42px);
+      font-weight: 800; line-height: 1.15;
+      color: var(--text);
+      margin-bottom: 12px;
+    }
+
+    .overview-desc {
+      font-size: 16px; color: var(--text-sub);
+      max-width: 580px; line-height: 1.75;
+      margin-bottom: 48px;
+    }
+
+    /* ============ ARCHITECTURE FLOW ============ */
+    .arch-flow {
+      display: flex; align-items: stretch;
+      gap: 0; overflow-x: auto;
+      padding: 8px 0 16px;
+    }
+
+    .arch-block {
+      flex-shrink: 0;
+      background: white;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r);
+      padding: 24px 22px;
+      text-align: center;
+      min-width: 140px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .arch-block:hover {
+      border-color: var(--accent);
+      box-shadow: var(--shadow-md);
+    }
+
+    .arch-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .arch-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 600;
+      color: var(--text);
+    }
+
+    .arch-sub {
+      font-size: 11px; color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Scheduler split */
+    .arch-split {
+      flex-shrink: 0;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    .arch-split .arch-block {
+      min-width: 130px; padding: 18px 16px;
+    }
+    .arch-split .arch-icon { width: 36px; height: 36px; font-size: 18px; }
+
+    /* Arrow connector */
+    .arch-arrow {
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      width: 36px;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* ============ SECTIONS NAV — bottom links ============ */
+    .sections-nav {
+      min-height: 100vh;
+      padding: 60px 60px 80px;
+      max-width: 1100px; margin: 0 auto;
+      scroll-snap-align: start;
+      display: flex; flex-direction: column;
+      justify-content: center;
+    }
+
+    .section-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 36px;
+    }
+
+    .section-card {
+      display: block;
+      background: white; border: 1.5px solid var(--border);
+      border-radius: var(--r); padding: 24px;
+      box-shadow: var(--shadow-sm);
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .section-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+      border-color: var(--accent);
+    }
+
+    .sc-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px; background: var(--accent-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .sc-title {
+      font-family: 'Outfit', sans-serif;
+      font-size: 16px; font-weight: 700;
+      color: var(--text); margin-bottom: 4px;
+    }
+
+    .sc-desc {
+      font-size: 13px; color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .sc-arrow {
+      display: flex; align-items: center; gap: 4px;
+      margin-top: 14px;
+      font-size: 13px; font-weight: 600;
+      color: var(--accent);
+    }
+    .sc-arrow i { font-size: 14px; transition: transform .2s; }
+    .section-card:hover .sc-arrow i { transform: translateX(3px); }
+
+    /* ============ FOOTER ============ */
+    footer {
+      text-align: center; padding: 28px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--text-muted);
+    }
+
+    /* ============ REVEAL ============ */
+    .reveal {
+      opacity: 0; transform: translateY(20px);
+      transition: opacity .6s ease, transform .6s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .d1{transition-delay:.05s} .d2{transition-delay:.12s}
+    .d3{transition-delay:.19s} .d4{transition-delay:.26s}
+    .d5{transition-delay:.33s} .d6{transition-delay:.40s}
+    .d7{transition-delay:.47s}
+  </style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<section class="hero">
+  <div class="glow g1"></div>
+  <div class="glow g2"></div>
+
+  <div class="chip">
+    <i class="ph-bold ph-atom"></i>
+    Project Demonstration
+  </div>
+
+  <h1>
+    Quantum-Assisted Optimization<br>
+    for CXL-Aware Hybrid Scheduling
+  </h1>
+
+  <p class="hero-sub">
+    A working hybrid quantum-classical system that decides which data center tasks
+    get fast DRAM memory and which go to CXL — using the RQAOA algorithm to explore
+    all possible assignments simultaneously.
+  </p>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-val">8</div>
+      <div class="stat-label">Tasks</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">5</div>
+      <div class="stat-label">Schedulers</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">2⁸</div>
+      <div class="stat-label">States Explored</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">3×</div>
+      <div class="stat-label">CXL Latency</div>
+    </div>
+  </div>
+
+  <div class="scroll-hint">
+    <span>Scroll to explore</span>
+    <i class="ph ph-caret-down"></i>
+  </div>
+</section>
+
+<!-- ============ WHAT WE BUILT ============ -->
+<section class="overview">
+  <p class="sec-label reveal">System Architecture</p>
+  <h2 class="reveal">How the system works</h2>
+  <p class="overview-desc reveal">
+    A single CLI command triggers the full pipeline: QUBO matrix construction,
+    quantum optimization via RQAOA, task execution on NUMA-simulated memory tiers,
+    and automated evaluation with metrics and plots.
+  </p>
+
+  <!-- Architecture flow -->
+  <div class="arch-flow reveal">
+
+    <div class="arch-block">
+      <div class="arch-icon"><i class="ph-bold ph-terminal-window"></i></div>
+      <div class="arch-title">main.py</div>
+      <div class="arch-sub">CLI entry point<br>Parses scheduler flag</div>
+    </div>
+
+    <div class="arch-arrow"><i class="ph ph-arrow-right"></i></div>
+
+    <div class="arch-block">
+      <div class="arch-icon"><i class="ph-bold ph-flow-arrow"></i></div>
+      <div class="arch-title">run_benchmarks.py</div>
+      <div class="arch-sub">Benchmark orchestrator<br>Runs all schedulers</div>
+    </div>
+
+    <div class="arch-arrow"><i class="ph ph-arrow-right"></i></div>
+
+    <div class="arch-split">
+      <div class="arch-block">
+        <div class="arch-icon"><i class="ph-bold ph-list-checks"></i></div>
+        <div class="arch-title">Classical</div>
+        <div class="arch-sub">FCFS · RR · Greedy</div>
+      </div>
+      <div class="arch-block">
+        <div class="arch-icon"><i class="ph-bold ph-atom"></i></div>
+        <div class="arch-title">Quantum (RQAOA)</div>
+        <div class="arch-sub">QUBO → Optimizer</div>
+      </div>
+    </div>
+
+    <div class="arch-arrow"><i class="ph ph-arrow-right"></i></div>
+
+    <div class="arch-block">
+      <div class="arch-icon"><i class="ph-bold ph-gear-six"></i></div>
+      <div class="arch-title">Execution Layer</div>
+      <div class="arch-sub">task_orchestrator.py<br>task_runner.py × N</div>
+    </div>
+
+    <div class="arch-arrow"><i class="ph ph-arrow-right"></i></div>
+
+    <div class="arch-block">
+      <div class="arch-icon"><i class="ph-bold ph-chart-bar"></i></div>
+      <div class="arch-title">Evaluation</div>
+      <div class="arch-sub">metrics.py<br>graphs.py</div>
+    </div>
+
+    <div class="arch-arrow"><i class="ph ph-arrow-right"></i></div>
+
+    <div class="arch-block">
+      <div class="arch-icon"><i class="ph-bold ph-folder-open"></i></div>
+      <div class="arch-title">results/</div>
+      <div class="arch-sub">CSVs + Plots</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ PRESENTATION SECTIONS ============ -->
+<section class="sections-nav">
+  <p class="sec-label reveal">Presentation</p>
+  <h2 class="reveal">Sections</h2>
+  <p class="overview-desc reveal">
+    Each section covers a distinct part of the project. Click to jump in.
+  </p>
+
+  <div class="section-cards">
+
+    <a href="./hari/index.html" class="section-card reveal d1">
+      <div class="sc-icon"><i class="ph-bold ph-presentation-chart"></i></div>
+      <div class="sc-title">Introduction</div>
+      <div class="sc-desc">The problem, quantum basics, system architecture walkthrough, and the scale argument.</div>
+      <div class="sc-arrow">Enter <i class="ph-bold ph-arrow-right"></i></div>
+    </a>
+
+    <a href="./smarth/index.html" class="section-card reveal d2">
+      <div class="sc-icon"><i class="ph-bold ph-list-checks"></i></div>
+      <div class="sc-title">Classical Schedulers</div>
+      <div class="sc-desc">FCFS, Round Robin, Greedy, Priority-Weighted — how each assigns tasks to memory.</div>
+      <div class="sc-arrow">Enter <i class="ph-bold ph-arrow-right"></i></div>
+    </a>
+
+    <a href="./vikas/index.html" class="section-card reveal d3">
+      <div class="sc-icon"><i class="ph-bold ph-chart-line-up"></i></div>
+      <div class="sc-title">Evaluation & Results</div>
+      <div class="sc-desc">Benchmarks, latency costs, completion times, and comparison plots across all schedulers.</div>
+      <div class="sc-arrow">Enter <i class="ph-bold ph-arrow-right"></i></div>
+    </a>
+
+    <a href="./anjana/index.html" class="section-card reveal d4">
+      <div class="sc-icon"><i class="ph-bold ph-atom"></i></div>
+      <div class="sc-title">Quantum Algorithm</div>
+      <div class="sc-desc">QUBO formulation, RQAOA recursive optimization, IBM Quantum hardware run.</div>
+      <div class="sc-arrow">Enter <i class="ph-bold ph-arrow-right"></i></div>
+    </a>
+
+    <a href="./devandra/index.html" class="section-card reveal d5">
+      <div class="sc-icon"><i class="ph-bold ph-plugs-connected"></i></div>
+      <div class="sc-title">Integration & Pipeline</div>
+      <div class="sc-desc">main.py, full pipeline wiring, deployment, and end-to-end execution.</div>
+      <div class="sc-arrow">Enter <i class="ph-bold ph-arrow-right"></i></div>
+    </a>
+
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  Quantum-Assisted CXL Scheduler · Built with Python 3.10, Qiskit, OpenQAOA
+</footer>
+
+<script>
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+</script>
+</body>
+</html>
