@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Introduction — Quantum CXL Scheduler</title>
+  <title>Introduction | Quantum CXL Scheduler</title>
   <meta name="description" content="Introduction: data center memory bottleneck, quantum computing fundamentals, system architecture, and the scale argument.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -36,7 +36,6 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html {
       scroll-behavior: smooth;
-      scroll-snap-type: y mandatory;
     }
     body {
       font-family: 'Inter', sans-serif;
@@ -109,7 +108,6 @@
       display: flex; flex-direction: column;
       justify-content: center;
       position: relative;
-      scroll-snap-align: start;
     }
 
     .sec-tag {
@@ -174,9 +172,11 @@
     /* ============ HERO ============ */
     #hero {
       min-height: auto;
-      padding-top: 80px;
-      padding-bottom: 60px;
+      padding: 48px 72px 48px;
+      display: flex;
+      flex-direction: column;
       justify-content: flex-start;
+      position: relative;
     }
 
     .glow {
@@ -441,9 +441,9 @@
     }
 
     @keyframes spinDigit {
-      0%   { opacity: 0.3; content: '0'; }
-      50%  { opacity: 0.05; }
-      100% { opacity: 0.3; }
+      0%   { opacity: 0.8; content: '0'; }
+      50%  { opacity: 0.2; }
+      100% { opacity: 0.8; }
     }
 
     /* Lid overlay — frosted glass so you can see the spin through it */
@@ -451,9 +451,9 @@
       position: absolute; inset: -2px;
       border: 2px solid var(--accent);
       border-radius: 16px;
-      background: rgba(238, 242, 255, .55);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      background: rgba(238, 242, 255, 0.1);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
       display: flex; flex-direction: column;
       align-items: center; justify-content: flex-end;
       padding-bottom: 20px;
@@ -529,12 +529,25 @@
     .arch-stage {
       display: grid; grid-template-columns: 200px 1fr;
       gap: 32px; align-items: start;
-      padding: 28px 0;
-      border-bottom: 1px solid var(--border);
-      opacity: 0.4;
-      transition: opacity .5s;
+      padding: 24px;
+      border: 1.5px solid transparent;
+      border-radius: var(--r);
+      opacity: 0.45;
+      transition: all .3s ease;
+      cursor: pointer;
     }
-    .arch-stage.active { opacity: 1; }
+    .arch-stage:hover {
+      opacity: 0.8;
+      background: white;
+      border-color: var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+    .arch-stage.active {
+      opacity: 1;
+      background: white;
+      border-color: var(--accent);
+      box-shadow: var(--shadow-md);
+    }
 
     .arch-stage-left {
       display: flex; flex-direction: column;
@@ -576,7 +589,7 @@
     .arch-connector {
       width: 2px; height: 20px;
       background: var(--border);
-      margin: 0 0 0 23px;
+      margin: 0 0 0 47px;
     }
 
     /* Step-through controls */
@@ -674,10 +687,6 @@
 </head>
 <body>
 
-<!-- ===== BACK LINK ===== -->
-<a href="../index.html" class="back-link">
-  <i class="ph ph-arrow-left"></i> All Sections
-</a>
 
 <!-- ===== PROGRESS DOTS ===== -->
 <div class="progress-dots">
@@ -691,20 +700,20 @@
 <!-- ================================================================
      SECTION 0 — HERO
 ================================================================ -->
-<section id="hero" class="slide">
+<section id="hero">
   <div class="glow gl1"></div>
   <div class="glow gl2"></div>
 
   <div class="hero-chip">
     <i class="ph-bold ph-presentation-chart"></i>
-    Introduction · ~5 minutes
+    Introduction
   </div>
 
   <div class="hero-grid">
     <div>
       <p class="sec-tag">The Problem</p>
       <h1>
-        Your data center has<br>
+        The data center has<br>
         a memory scheduling<br>
         problem.
       </h1>
@@ -727,7 +736,6 @@
           &nbsp;&nbsp;
           <span style="color:#6366F1;">●</span> Task
         </span>
-        <span class="mono" style="color:var(--green); font-weight:600;">● LIVE</span>
       </div>
     </div>
   </div>
@@ -741,7 +749,7 @@
   <p class="sec-tag reveal">Section 1</p>
   <h2 class="reveal">What happens when 1,000 tasks<br>fight for the same memory?</h2>
   <p class="reveal" style="max-width:600px; font-size:16px; margin-bottom:12px;">
-    A data center runs hundreds of workloads simultaneously. Each task needs memory —
+    A data center runs hundreds of workloads simultaneously. Each task needs memory,
     but fast DRAM is limited. When too many tasks get routed to the same memory tier,
     everything slows down. Watch it happen in real time.
   </p>
@@ -750,9 +758,9 @@
     <!-- Left: story narration -->
     <div class="dc-narration">
       <div class="narration-step active" data-step="0" onclick="setDCStep(0)">
-        <div class="ns-title"><i class="ph-bold ph-traffic-sign" style="margin-right:6px;"></i>Normal load — 8 tasks</div>
+        <div class="ns-title"><i class="ph-bold ph-traffic-sign" style="margin-right:6px;"></i>Normal load: 8 tasks</div>
         <div class="ns-body">
-          A small cluster with 8 tasks. Classical scheduling (FCFS — first come, first served)
+          A small cluster with 8 tasks. Classical scheduling (FCFS: first come, first served)
           assigns them in arrival order. DRAM fills up, remaining tasks go to CXL.
           Everything works fine. Latency is manageable.
         </div>
@@ -761,7 +769,7 @@
       <div class="narration-step" data-step="1" onclick="setDCStep(1)">
         <div class="ns-title"><i class="ph-bold ph-warning" style="margin-right:6px;"></i>Scale to 100 tasks</div>
         <div class="ns-body">
-          Now DRAM is overwhelmed. FCFS has no intelligence — it doesn't know which tasks
+          Now DRAM is overwhelmed. FCFS has no intelligence, meaning it doesn't know which tasks
           are memory-sensitive. High-priority tasks get stuck on slow CXL.
           The red lines appear: congestion, wasted cycles, SLA violations.
         </div>
@@ -771,7 +779,7 @@
         <div class="ns-title"><i class="ph-bold ph-fire" style="margin-right:6px;"></i>Scale to 1,000 tasks</div>
         <div class="ns-body">
           At this scale, even smart greedy heuristics break. There are 2¹⁰⁰⁰ possible
-          assignments — more combinations than atoms in the universe. Classical algorithms
+          assignments, representing more combinations than atoms in the universe. Classical algorithms
           can only sample a tiny fraction. The data center is gridlocked.
         </div>
       </div>
@@ -871,7 +879,7 @@
       <strong>Why does this matter for scheduling?</strong><br>
       With 8 tasks, there are 2⁸ = 256 possible DRAM/CXL assignments. A classical
       computer tries them one at a time. A quantum computer, using qubits, represents
-      all 256 states simultaneously and finds the best one through interference —
+      all 256 states simultaneously and finds the best one through interference,
       amplifying good solutions and cancelling bad ones. That's what RQAOA does.
     </div>
   </div>
@@ -883,7 +891,7 @@
 ================================================================ -->
 <section id="architecture" class="slide">
   <p class="sec-tag reveal">Section 3</p>
-  <h2 class="reveal">System architecture — step by step</h2>
+  <h2 class="reveal">System architecture: step by step</h2>
   <p class="reveal" style="max-width:600px; font-size:16px; margin-bottom:8px;">
     This is exactly how the system is built. Each stage feeds the next.
     Click through to see the data flow from a CLI command to optimised results.
@@ -891,12 +899,6 @@
 
   <div class="arch-walkthrough reveal">
     <div class="arch-controls">
-      <button class="btn btn-sm btn-outline" id="archPrev" onclick="archStep(-1)">
-        <i class="ph-bold ph-arrow-left"></i> Prev
-      </button>
-      <button class="btn btn-sm btn-accent" id="archNext" onclick="archStep(1)">
-        Next <i class="ph-bold ph-arrow-right"></i>
-      </button>
       <span class="arch-step-label" id="archStepLabel">Step 1 of 6</span>
     </div>
 
@@ -919,7 +921,7 @@
             <strong>Challenge we solved:</strong> Getting a single entry point to work
             across both classical and quantum paths required designing a clean
             scheduler interface (<code>BaseScheduler</code>) that all 5 algorithms
-            implement identically — so the orchestrator doesn't care which one it's running.
+            implement identically, so the orchestrator doesn't care which one it's running.
           </div>
         </div>
       </div>
@@ -941,7 +943,7 @@
           </p>
           <div class="arch-stage-detail">
             <strong>Design decision:</strong> We separated "scheduling" from
-            "execution" — the schedulers only produce a <code>{'{'}task_id: "DRAM" | "CXL"{'}'}</code>
+            "execution". The schedulers only produce a <code>{'{'}task_id: "DRAM" | "CXL"{'}'}</code>
             dict. They never touch subprocesses. This made the system modular and
             testable: you can unit-test schedulers without launching any real processes.
           </div>
@@ -966,7 +968,7 @@
           <div class="arch-stage-detail">
             <strong>Key insight:</strong> Even the best classical scheduler (Greedy) only
             considers one dimension at a time. It can't jointly optimise memory sensitivity,
-            priority, and capacity constraints simultaneously — that's where QUBO shines.
+            priority, and capacity constraints simultaneously, which is where QUBO shines.
           </div>
         </div>
       </div>
@@ -990,7 +992,7 @@
           <div class="arch-stage-detail">
             <strong>Challenge we solved:</strong> OpenQAOA and our QUBO builder use
             different matrix formats. We built <code>qubo_converter.py</code> to
-            translate between them — a deceptively tricky format-bridging step that
+            translate between them, which is a deceptively tricky format-bridging step that
             had to preserve coefficient signs exactly, or the optimizer would
             minimise the wrong objective.
           </div>
@@ -1016,7 +1018,7 @@
             <strong>Challenge we solved:</strong> AWS EC2 doesn't support
             <code>numactl</code> NUMA-faking (<code>CONFIG_NUMA_EMU</code> is not
             compiled into Ubuntu kernels). We pivoted to software-level latency
-            simulation inside <code>task_runner.py</code> — injecting precise
+            simulation inside <code>task_runner.py</code>, injecting precise
             per-access delays to replicate the 3× CXL penalty faithfully.
             This decision is documented in <code>docs/numa_verification.md</code>.
           </div>
@@ -1065,7 +1067,7 @@
     <div class="wright-video-card">
       <div class="wright-video-placeholder" id="wrightVideoSlot">
         <i class="ph ph-video-camera"></i>
-        <span>Wright Brothers video — will be embedded here</span>
+        <span>Wright Brothers video: will be embedded here</span>
         <span style="font-size:11px; color:var(--text-muted);">Provide the video file to wire it in</span>
       </div>
     </div>
@@ -1095,7 +1097,7 @@
     </div>
 
     <p class="wright-footer-msg">
-      At 1,000+ tasks, classical schedulers face 2¹⁰⁰⁰ possible assignments — a
+      At 1,000+ tasks, classical schedulers face 2¹⁰⁰⁰ possible assignments, a
       number so large it has more digits than atoms in the observable universe.
       Greedy heuristics sample a negligible fraction. Quantum algorithms like RQAOA
       explore the full solution space through superposition and interference.
@@ -1351,7 +1353,7 @@ SECTIONS.forEach(id => { const el = document.getElementById(id); if (el) secObs.
     ctx.fillStyle = '#6B7280';
     ctx.font = '700 9px Outfit';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText('SWITCH', SWITCH.x, SWITCH.y);
+    ctx.fillText('SCHEDULER', SWITCH.x, SWITCH.y);
 
     // Draw memory banks
     [DRAM_BANK, CXL_BANK].forEach(bank => {
@@ -1392,15 +1394,17 @@ SECTIONS.forEach(id => { const el = document.getElementById(id); if (el) secObs.
       tk.t += tk.speed;
       if (tk.t > 1) tk.t = 0;
 
+      let split = tk.congested ? 0.85 : 0.5;
+
       let px, py;
-      if (tk.t < 0.5) {
+      if (tk.t < split) {
         // Phase 0: server → switch
-        const tt = tk.t * 2;
+        const tt = tk.t / split;
         px = tk.sx + (tk.mx - tk.sx) * tt;
         py = tk.sy + (tk.my - tk.sy) * tt;
       } else {
         // Phase 1: switch → memory
-        const tt = (tk.t - 0.5) * 2;
+        const tt = (tk.t - split) / (1 - split);
         px = tk.mx + (tk.tx - tk.mx) * tt;
         py = tk.my + (tk.ty - tk.my) * tt;
       }
@@ -1419,10 +1423,14 @@ SECTIONS.forEach(id => { const el = document.getElementById(id); if (el) secObs.
       for (let i = 1; i <= trail; i++) {
         const tt2 = Math.max(0, tk.t - i * 0.015);
         let tx2, ty2;
-        if (tt2 < 0.5) {
-          const t2 = tt2*2; tx2=tk.sx+(tk.mx-tk.sx)*t2; ty2=tk.sy+(tk.my-tk.sy)*t2;
+        if (tt2 < split) {
+          const t2 = tt2 / split; 
+          tx2=tk.sx+(tk.mx-tk.sx)*t2; 
+          ty2=tk.sy+(tk.my-tk.sy)*t2;
         } else {
-          const t2=(tt2-.5)*2; tx2=tk.mx+(tk.tx-tk.mx)*t2; ty2=tk.my+(tk.ty-tk.my)*t2;
+          const t2 = (tt2 - split) / (1 - split); 
+          tx2=tk.mx+(tk.tx-tk.mx)*t2; 
+          ty2=tk.my+(tk.ty-tk.my)*t2;
         }
         ctx.beginPath(); ctx.arc(tx2,ty2,2*(1-i/(trail+1)),0,Math.PI*2);
         ctx.fillStyle = color + Math.floor((1-i/(trail+1))*40).toString(16).padStart(2,'0');
@@ -1446,7 +1454,7 @@ SECTIONS.forEach(id => { const el = document.getElementById(id); if (el) secObs.
         ctx.fillStyle = 'rgba(220,38,38,.7)';
         ctx.font = '700 11px Outfit';
         ctx.textAlign = 'center';
-        ctx.fillText('⚠ MEMORY CONGESTION — SLA VIOLATION', W/2, H-12);
+        ctx.fillText('⚠ MEMORY CONGESTION: SLA VIOLATION', W/2, H-12);
       }
     }
 
@@ -1538,11 +1546,14 @@ let archIdx = 0;
 const archStages = document.querySelectorAll('.arch-stage');
 const archLabel = document.getElementById('archStepLabel');
 
-function archUpdate() {
+function archUpdate(skipScroll) {
   archStages.forEach((s, i) => s.classList.toggle('active', i === archIdx));
-  archLabel.textContent = `Step ${archIdx + 1} of ${archStages.length}`;
-  // Scroll stage into view
-  archStages[archIdx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  if (archLabel) {
+    archLabel.textContent = `Step ${archIdx + 1} of ${archStages.length}`;
+  }
+  if (!skipScroll) {
+    archStages[archIdx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
 }
 
 function archStep(dir) {
@@ -1550,7 +1561,15 @@ function archStep(dir) {
   archUpdate();
 }
 
-archUpdate();
+// Make stages clickable
+archStages.forEach((stage, idx) => {
+  stage.addEventListener('click', () => {
+    archIdx = idx;
+    archUpdate(true);
+  });
+});
+
+archUpdate(true);
 </script>
 </body>
 </html>
