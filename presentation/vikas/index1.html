@@ -77,22 +77,20 @@
                 <h3>Weighted Latency Calculation</h3>
               </div>
               <p class="text-xs text-slate-400 leading-relaxed">
-                To evaluate structural scheduling efficiency under capacity
-                parameters, your metrics engine calculates the exact latency
-                degradation via this formula:
+                Calculates how much a task gets slowed down depending on which
+                memory tier it uses. Slower tiers cause a higher penalty.
               </p>
               <div
                 class="bg-slate-950 p-4 rounded-lg border border-slate-800 font-mono text-xs text-center text-indigo-300 my-4"
               >
-                Latency Cost = &mu;<sub>i</sub> &times; Latency<sub>tier</sub>
-                &times; Size<sub>MB</sub>
+                Latency Cost = Task Sensitivity &times; Tier Latency &times;
+                Task Size
               </div>
               <p class="text-xs text-slate-400 leading-relaxed">
-                This handles placement optimization. When high-sensitivity tasks
-                ($\mu_i \to 1.0$) overflow local DRAM and bind to secondary CXL
-                nodes, the penalty spikes non-linearly. Low-sensitivity
-                applications are prioritized for CXL links to maximize DRAM
-                availability.
+                This handles placement optimization. Tasks highly sensitive to
+                memory slowdowns are prioritized for local DRAM.
+                Low-sensitivity, background workloads are moved to the slower
+                CXL tier to keep DRAM free.
               </p>
             </div>
           </div>
@@ -110,25 +108,24 @@
                 <h3>Turnaround vs. Makespan Performance</h3>
               </div>
               <p class="text-xs text-slate-400 leading-relaxed">
-                The evaluation suite tracks isolated execution timelines to
-                monitor compute bottlenecks:
+                Tracks execution speed from two perspectives to catch processing
+                bottlenecks:
               </p>
               <ul class="text-xs text-slate-400 space-y-3 mt-4 list-none pl-0">
                 <li class="flex items-start gap-2">
                   <span class="text-emerald-400 font-bold">&bull;</span>
                   <span
-                    ><strong>Average Completion Time:</strong> The structural
-                    arithmetic mean of all independent process lifespans
-                    measured by subprocess monitoring loops.</span
+                    ><strong>Average Completion Time:</strong> The average time
+                    a single task takes to finish from start to end across the
+                    whole run.</span
                   >
                 </li>
                 <li class="flex items-start gap-2">
                   <span class="text-emerald-400 font-bold">&bull;</span>
                   <span
-                    ><strong>Batch Makespan:</strong> The overall wall-clock
-                    turnaround delta ($max(T_{\text{end}}) -
-                    min(T_{\text{start}})$). This captures the real system
-                    processing latency for concurrent memory tasks.</span
+                    ><strong>Batch Makespan:</strong> The total time taken by
+                    the system from the start of the first task to the end of
+                    the very last task (Max End Time - Min Start Time).</span
                   >
                 </li>
               </ul>
@@ -146,21 +143,21 @@
                 <h3>Ising/QUBO Matrix Formulations</h3>
               </div>
               <p class="text-xs text-slate-400 leading-relaxed">
-                The scheduling engine transforms NP-hard constraints into a
-                single operational optimization objective matrix map:
+                Translates our hardware rules into a math framework (QUBO
+                matrix) that a Quantum Computer can solve:
               </p>
               <div
                 class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-[10px] text-purple-300 my-4 leading-relaxed"
               >
-                Diag: Q[i][i] = &mu;<sub>i</sub> &times; &Delta;Latency &times;
-                Size<sub>i</sub> <br />
-                Off-Diag: Penalty &times; (&Sigma;(1-x<sub>i</sub>)m<sub>i</sub>
-                - C<sub>DRAM</sub>)<sup>2</sup>
+                Diagonal Elements = Cost of placing a task in CXL tier<br />
+                Off-Diagonal Elements = High Penalty &times; (DRAM Space
+                Overflowed)<sup>2</sup>
               </div>
               <p class="text-xs text-slate-400 leading-relaxed">
-                The diagonal terms represent independent placement penalties,
-                while quadratic off-diagonal multipliers penalize configurations
-                that exceed physical DRAM boundaries.
+                The diagonal values calculate individual placement costs. The
+                off-diagonal values apply a heavy mathematical penalty if a
+                scheduler tries to push more data into local DRAM than its
+                physical hardware limit allows.
               </p>
             </div>
           </div>
@@ -275,7 +272,7 @@
               </h4>
               <p class="text-xs text-slate-400 mt-1 leading-relaxed">
                 Evaluates metric consistency across five independent iterations,
-                confirming that solution quality variations stay within tight
+                confirm that solution quality variations stay within tight
                 standard deviation bands.
               </p>
             </div>
@@ -467,9 +464,9 @@
             >
             Basic machine learning models or linear approximations often fail to
             accurately predict optimization costs at scale. These heuristic
-            approaches do not capture the sharp, non-linear penalty spikes
-            caused by capacity constraint violations in the QUBO formulation. As
-            a result, exact mathematical tracking remains essential for managing
+            approoch do not capture the sharp, non-linear penalty spikes caused
+            by capacity constraint violations in the QUBO formulation. As a
+            result, exact mathematical tracking remains essential for managing
             large-scale memory tier assignments.
           </div>
         </div>
