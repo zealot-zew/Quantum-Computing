@@ -333,408 +333,110 @@
     }
 
     /* ============================================
-       SECTION 2 — QUBIT DEMO
-       (Part 4 will fill the interactive box)
+       SECTION 2 — WHY RQAOA
     ============================================ */
-    #qubit {
+    #why-rqaoa {
       border-top: 1px solid var(--border);
     }
-
-    .qubit-layout {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 60px; align-items: center;
-      margin-top: 36px;
+    .algo-row {
+      display: flex; align-items: center; gap: 80px;
+      margin-bottom: 100px;
     }
-
-    /* Classical bit */
-    .bit-box {
-      background: white; border-radius: 16px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-md);
-      padding: 32px; text-align: center;
+    .algo-row.reverse {
+      flex-direction: row-reverse;
     }
-    .bit-box-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 14px; font-weight: 700;
-      color: var(--text-muted); margin-bottom: 20px;
-      text-transform: uppercase; letter-spacing: .08em;
+    .algo-text {
+      flex: 1;
     }
-    .switch-track {
-      width: 80px; height: 40px;
-      background: var(--border); border-radius: 40px;
-      margin: 0 auto; position: relative;
-      cursor: pointer; transition: background .3s;
+    .algo-card-title {
+      font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 800;
+      margin-bottom: 24px; color: var(--text);
     }
-    .switch-track.on { background: var(--accent); }
-    .switch-thumb {
-      width: 32px; height: 32px;
-      background: white; border-radius: 50%;
-      box-shadow: var(--shadow-md);
-      position: absolute; top: 4px; left: 4px;
-      transition: left .3s;
-      display: flex; align-items: center; justify-content: center;
-      font-family: 'Outfit', sans-serif;
-      font-size: 16px; font-weight: 800;
+    .algo-desc {
+      font-size: 16px; color: var(--text-sub); line-height: 1.6;
+      margin-bottom: 32px; min-height: 48px;
     }
-    .switch-track.on .switch-thumb { left: 44px; }
-    .bit-label {
-      margin-top: 16px; font-size: 14px;
-      color: var(--text-sub); font-weight: 600;
+    .algo-controls {
+      display: flex; gap: 16px; margin-bottom: 24px; align-items: center;
     }
-    .bit-label-hint {
-      font-size: 12px; color: var(--text-muted);
-      margin-top: 4px;
-    }
-
-    /* Qubit — Schrödinger's box */
-    .qubit-box-outer {
-      background: white; border-radius: 16px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-md);
-      padding: 32px; text-align: center;
-    }
-
-    .schrodinger-box {
-      width: 200px; height: 200px;
-      margin: 0 auto;
-      perspective: 600px;
-      cursor: pointer;
-      position: relative;
-    }
-
-    .box-container {
-      width: 100%; height: 100%;
-      position: relative;
-      transform-style: preserve-3d;
-    }
-
-    /* The "closed box" — translucent with value spinning inside */
-    .box-shell {
-      position: absolute; inset: 0;
-      border: 2px solid var(--accent);
-      border-radius: 16px;
-      background: rgba(67, 56, 202, .04);
-      backdrop-filter: blur(2px);
-      display: flex; align-items: center; justify-content: center;
-      transition: all .5s;
-      overflow: hidden;
-    }
-
-    .box-shell.opened {
-      background: transparent;
-      border-style: dashed;
-      border-color: var(--text-muted);
-    }
-
-    /* Spinning value inside */
-    .spin-value {
-      font-family: 'Outfit', sans-serif;
-      font-size: 64px; font-weight: 900;
+    .algo-step-indicator {
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600;
       color: var(--accent);
-      animation: spinDigit 0.3s linear infinite;
-      user-select: none;
     }
-
-    .spin-value.collapsed {
-      animation: none;
-      font-size: 80px;
+    .algo-canvas-wrapper {
+      flex: 1; background: white; border-radius: 16px;
+      border: 1px solid var(--border); padding: 32px;
+      box-shadow: var(--shadow-md); display: flex; justify-content: center;
     }
-
-    @keyframes spinDigit {
-      0%   { opacity: 0.8; content: '0'; }
-      50%  { opacity: 0.2; }
-      100% { opacity: 0.8; }
+    .algo-canvas {
+      width: 100%; max-width: 360px; background: var(--bg);
+      border-radius: 8px; border: 1px solid var(--border);
     }
-
-    /* Lid overlay — frosted glass so you can see the spin through it */
-    .box-lid {
-      position: absolute; inset: -2px;
-      border: 2px solid var(--accent);
-      border-radius: 16px;
-      background: rgba(238, 242, 255, 0.1);
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: flex-end;
-      padding-bottom: 20px;
-      gap: 6px;
-      transition: all .5s ease;
-      z-index: 2;
-      cursor: pointer;
+    .algo-badge {
+      padding: 12px 18px; border-radius: 8px;
+      font-size: 14px; font-weight: 500; display: inline-flex; gap: 10px;
+      line-height: 1.5; align-items: flex-start;
     }
-    .box-lid i {
-      font-size: 22px; color: var(--accent); opacity: .7;
-    }
-    .box-lid span {
-      font-size: 11px; font-weight: 600;
-      color: var(--accent); opacity: .8;
-    }
-    .box-lid.open {
-      transform: rotateX(-120deg) translateY(-60px);
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .qubit-label {
-      margin-top: 16px; font-size: 14px;
-      color: var(--text-sub); font-weight: 600;
-    }
-    .qubit-label-hint {
-      font-size: 12px; color: var(--text-muted);
-      margin-top: 4px;
-    }
-    .qubit-reset {
-      margin-top: 12px; font-size: 12px;
-      color: var(--accent); font-weight: 600;
-      cursor: pointer; display: none;
-      background: none; border: none;
-      font-family: 'Inter', sans-serif;
-    }
-    .qubit-reset:hover { text-decoration: underline; }
-
-    .qubit-explain {
-      margin-top: 28px;
-    }
-    .qubit-explain p {
-      font-size: 15px; line-height: 1.8;
-    }
-
-    .callout {
-      background: var(--accent-light);
-      border-left: 3px solid var(--accent);
-      border-radius: 0 var(--r) var(--r) 0;
-      padding: 14px 18px;
-      font-size: 14px; color: var(--text);
-      line-height: 1.7; margin-top: 16px;
-    }
-
-    /* Maze Demonstration Styles */
-    .maze-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 48px;
-      margin-top: 32px;
-    }
-    .maze-card {
-      background: white;
-      border: 1.5px solid var(--border);
-      border-radius: var(--r);
-      padding: 24px;
-      box-shadow: var(--shadow-sm);
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .maze-card-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-bottom: 16px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-    }
-    .maze-canvas-wrapper {
-      background: var(--bg);
-      border-radius: 8px;
-      padding: 16px;
-      border: 1px solid var(--border);
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
-    .maze-label {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--accent);
-      margin-bottom: 8px;
-      min-height: 18px;
-    }
-    .maze-desc {
-      font-size: 13px;
-      color: var(--text-sub);
-      line-height: 1.6;
-      max-width: 320px;
-    }
+    .algo-badge i { font-size: 20px; flex-shrink: 0; }
+    .badge-red { background: var(--red-light); color: var(--red); border: 1px solid rgba(220,38,38,.2); }
+    .badge-green { background: var(--green-light); color: var(--green); border: 1px solid rgba(5,150,105,.2); }
 
     /* ============================================
-       SECTION 3 — ARCHITECTURE
-       (Part 5 will fill the animated walkthrough)
+       SECTION 3 — ENTERPRISE DEPLOYMENT
     ============================================ */
-    #architecture {
+    #deployment {
       border-top: 1px solid var(--border);
     }
 
-    .arch-walkthrough {
-      margin-top: 36px;
+    /* SCOREBOARD */
+    .scoreboard-container {
+      margin-top: 60px; margin-bottom: 60px;
     }
-
-    /* Detailed architecture — vertical flow */
-    .arch-pipeline {
-      display: flex; flex-direction: column;
-      gap: 0; max-width: 900px; margin: 0 auto;
+    .algo-scoreboard {
+      width: 100%; border-collapse: collapse;
+      background: white; border-radius: 12px; overflow: hidden;
+      box-shadow: var(--shadow-md); border: 1px solid var(--border);
     }
-
-    .arch-stage {
-      display: grid; grid-template-columns: 200px 1fr;
-      gap: 32px; align-items: start;
-      padding: 24px;
-      border: 1.5px solid transparent;
-      border-radius: var(--r);
-      opacity: 0.45;
-      transition: all .3s ease;
-      cursor: pointer;
+    .algo-scoreboard th, .algo-scoreboard td {
+      padding: 16px 24px; text-align: left; border-bottom: 1px solid var(--border);
     }
-    .arch-stage:hover {
-      opacity: 0.8;
-      background: white;
-      border-color: var(--border);
-      box-shadow: var(--shadow-sm);
+    .algo-scoreboard th {
+      background: var(--bg); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted);
     }
-    .arch-stage.active {
-      opacity: 1;
-      background: white;
-      border-color: var(--accent);
-      box-shadow: var(--shadow-md);
+    .algo-scoreboard td { font-size: 14px; font-weight: 500; color: var(--text); }
+    .cell-bad { color: var(--red); }
+    .cell-warn { color: #D97706; }
+    .cell-ok { color: var(--green); font-weight: 600; }
+    .row-winner { background: rgba(5, 150, 105, 0.05); }
+    .row-winner td { border-bottom: none; }
+    .row-winner td:first-child { font-weight: 700; color: var(--accent); }
+    
+    /* Phase 4 Pipeline Cards */
+    .pipeline-container {
+      display: flex; align-items: center; justify-content: center; gap: 24px;
+      margin-top: 40px;
     }
-
-    .arch-stage-left {
-      display: flex; flex-direction: column;
-      align-items: flex-start; gap: 8px;
+    .pipe-stage {
+      flex: 1; max-width: 300px; background: white; border: 1.5px solid var(--border);
+      border-radius: 16px; padding: 32px 24px; box-shadow: var(--shadow-sm);
+      display: flex; flex-direction: column; align-items: center; text-align: center;
+      position: relative; min-height: 250px;
     }
-
-    .arch-stage-icon {
-      width: 48px; height: 48px;
-      border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 24px; color: var(--accent);
-      background: var(--accent-light);
+    .pipe-icon {
+      width: 64px; height: 64px; border-radius: 16px; display: flex;
+      align-items: center; justify-content: center; font-size: 32px;
+      margin-bottom: 24px;
     }
-
-    .arch-stage-name {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px; font-weight: 600;
-      color: var(--text);
+    .pipe-title {
+      font-family: 'Outfit', sans-serif; font-size: 20px; font-weight: 800;
+      color: var(--text); margin-bottom: 16px;
     }
-
-    .arch-stage-files {
-      font-size: 11px; color: var(--text-muted);
+    .pipe-desc {
+      font-size: 15px; color: var(--text-sub); line-height: 1.6;
     }
-
-    .arch-stage-desc {
-      font-size: 14px; line-height: 1.75;
-      color: var(--text-sub);
+    .pipe-arrow {
+      font-size: 40px; color: var(--text-muted); opacity: 0.3;
     }
-
-    .arch-stage-detail {
-      margin-top: 10px;
-      padding: 12px 16px;
-      background: var(--bg);
-      border-radius: 8px;
-      font-size: 13px; color: var(--text-sub);
-      line-height: 1.65;
-    }
-
-    .arch-connector {
-      width: 2px; height: 20px;
-      background: var(--border);
-      margin: 0 0 0 47px;
-    }
-
-    /* Step-through controls */
-    .arch-controls {
-      display: flex; gap: 12px; align-items: center;
-      margin-top: 28px; max-width: 900px; margin-left: auto; margin-right: auto;
-    }
-    .arch-step-label {
-      font-size: 13px; color: var(--text-muted);
-      font-weight: 500; margin-left: auto;
-    }
-
-    /* ============================================
-       SECTION 4 — WRIGHT BROTHERS
-       (Part 6 will fill the video + message)
-    ============================================ */
-    #wright {
-      border-top: 1px solid var(--border);
-      text-align: center;
-      align-items: center;
-    }
-
-    .wright-content {
-      max-width: 700px;
-    }
-
-    .wright-video-card {
-      background: white; border-radius: 16px;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-md);
-      padding: 20px; margin-top: 36px;
-      max-width: 640px;
-    }
-    .wright-video-placeholder {
-      width: 100%; height: 360px;
-      background: var(--bg);
-      border-radius: 8px;
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 12px; color: var(--text-muted);
-    }
-    .wright-video-placeholder i { font-size: 40px; }
-    .wright-video-placeholder span {
-      font-size: 13px; font-weight: 500;
-    }
-
-    .wright-quote {
-      font-family: 'Outfit', sans-serif;
-      font-size: 22px; font-weight: 700;
-      color: var(--text);
-      line-height: 1.5;
-      margin-top: 36px;
-      max-width: 560px;
-    }
-
-    .wright-scale {
-      display: flex; gap: 16px; justify-content: center;
-      margin-top: 36px; flex-wrap: wrap;
-    }
-    .wright-scale-card {
-      background: white; border: 1px solid var(--border);
-      border-radius: var(--r); padding: 20px 28px;
-      text-align: center; box-shadow: var(--shadow-sm);
-    }
-    .wright-scale-val {
-      font-family: 'Outfit', sans-serif;
-      font-size: 32px; font-weight: 800;
-    }
-    .wright-scale-label {
-      font-size: 11px; color: var(--text-muted);
-      font-weight: 600; margin-top: 4px;
-      text-transform: uppercase; letter-spacing: .04em;
-    }
-
-    .wright-footer-msg {
-      font-size: 15px; color: var(--text-sub);
-      margin-top: 36px; line-height: 1.75;
-      max-width: 520px;
-    }
-
-    .next-section-card {
-      display: inline-flex; align-items: center; gap: 12px;
-      margin-top: 32px; padding: 14px 24px;
-      background: white; border: 1px solid var(--border);
-      border-radius: var(--r); box-shadow: var(--shadow-sm);
-      font-size: 14px; font-weight: 600; color: var(--text);
-      transition: all .2s;
-    }
-    .next-section-card:hover {
-      border-color: var(--accent); box-shadow: var(--shadow-md);
-    }
-    .next-section-card i { font-size: 18px; color: var(--accent); }
-
   </style>
 </head>
 <body>
@@ -744,9 +446,8 @@
 <div class="progress-dots">
   <div class="dot active" data-tip="Intro" onclick="jumpTo('hero')"></div>
   <div class="dot" data-tip="The Problem" onclick="jumpTo('datacenter')"></div>
-  <div class="dot" data-tip="Quantum 101" onclick="jumpTo('qubit')"></div>
-  <div class="dot" data-tip="Architecture" onclick="jumpTo('architecture')"></div>
-  <div class="dot" data-tip="Scale" onclick="jumpTo('wright')"></div>
+  <div class="dot" data-tip="Why RQAOA?" onclick="jumpTo('why-rqaoa')"></div>
+  <div class="dot" data-tip="Enterprise Deployment" onclick="jumpTo('deployment')"></div>
 </div>
 
 <!-- ================================================================
@@ -881,319 +582,241 @@
 
 
 <!-- ================================================================
-     SECTION 2 — QUBIT 101
+     SECTION 2 — WHY RQAOA
 ================================================================ -->
-<section id="qubit" class="slide">
+<section id="why-rqaoa" class="slide">
   <p class="sec-tag reveal">Section 2</p>
-  <h2 class="reveal">A classical bit vs. a qubit</h2>
-  <p class="reveal" style="max-width:540px; font-size:16px;">
-    To understand why quantum helps, you need to see the difference between
-    how classical and quantum computers store information.
+  <h2 class="reveal">Why RQAOA? The Quantum Bake-off</h2>
+  <p class="reveal" style="max-width:600px; font-size:16px; margin-bottom: 80px;">
+    We evaluated several quantum algorithms. Most struggle with the datacenter's topology or scale. 
+    Step through each algorithm to see exactly why RQAOA emerged as the only viable choice.
   </p>
 
-  <div class="qubit-layout reveal">
-    <!-- Classical bit -->
-    <div class="bit-box">
-      <div class="bit-box-title">Classical Bit</div>
-      <div class="switch-track" id="bitSwitch" onclick="toggleBit()">
-        <div class="switch-thumb" id="bitThumb">0</div>
+  <!-- QAOA -->
+  <div class="algo-row reveal">
+    <div class="algo-text">
+      <div class="algo-card-title">1. QAOA (The Baseline)</div>
+      <div class="algo-controls">
+        <button class="btn btn-sm btn-outline" onclick="qaoaCtrl.next()">Next Step <i class="ph-bold ph-arrow-right"></i></button>
+        <span class="algo-step-indicator" id="qaoaStep">Step 1 of 4</span>
       </div>
-      <div class="bit-label" id="bitLabel">State: 0</div>
-      <div class="bit-label-hint">Click to flip. It's always exactly one value.</div>
+      <div class="algo-desc" id="qaoaDesc">All 2⁶ possible assignments at once. The quantum state is in superposition.</div>
+      <div class="algo-badge badge-red">
+        <i class="ph-bold ph-warning-circle"></i>
+        Can only see nearby nodes. Misses long-range patterns.
+      </div>
     </div>
-
-    <!-- Qubit — Schrödinger's box -->
-    <div class="qubit-box-outer">
-      <div class="bit-box-title">Qubit (Schrödinger's Box)</div>
-      <div class="schrodinger-box" id="sbox" onclick="openBox()">
-        <div class="box-container">
-          <!-- The spinning value inside (visible through translucent box) -->
-          <div class="box-shell" id="boxShell">
-            <div class="spin-value" id="spinVal">0</div>
-          </div>
-          <!-- The lid — click to open -->
-          <div class="box-lid" id="boxLid">
-            <i class="ph-bold ph-package"></i>
-            <span>Click to observe</span>
-          </div>
-        </div>
-      </div>
-      <div class="qubit-label" id="qubitLabel">State: |0⟩ + |1⟩ (superposition)</div>
-      <div class="qubit-label-hint" id="qubitHint">The value is both 0 AND 1 until you look.</div>
-      <button class="qubit-reset" id="qubitReset" onclick="resetBox()">
-        <i class="ph ph-arrow-counter-clockwise"></i> Reset
-      </button>
+    <div class="algo-canvas-wrapper">
+      <canvas id="qaoaCanvas" width="360" height="260" class="algo-canvas"></canvas>
     </div>
   </div>
 
-  <!-- Classical vs Quantum Maze Exploration Demo -->
-  <div class="maze-demo-container reveal" style="margin-top: 48px; width: 100%; text-align: center;">
-    <p class="sec-tag" style="justify-content: center; margin-bottom: 10px;">Superposition Demo</p>
-    <h3 style="margin-bottom: 8px; font-family: 'Outfit', sans-serif; font-size: 20px;">Path exploration in a maze</h3>
-    <p style="font-size: 14px; color: var(--text-sub); margin-bottom: 24px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-      A classic optimization problem: finding the exit of a maze. 
-      Observe how a classical algorithm must sequentially search each route, while a quantum system searches all options at once.
-    </p>
-    
-    <div class="maze-grid">
-      <!-- Classical card -->
-      <div class="maze-card">
-        <div class="maze-card-title">Classical (Sequential) Search</div>
-        <div class="maze-canvas-wrapper">
-          <canvas id="classicalMaze" width="300" height="300"></canvas>
-        </div>
-        <div class="maze-label" id="classicalMazeLabel">Testing Path 1 of 4...</div>
-        <div class="maze-desc">
-          Classical algorithms (like DFS/BFS) trace paths one-by-one. 
-          When they hit a dead end, they must backtrack and try the next route sequentially.
-        </div>
+  <!-- VQE -->
+  <div class="algo-row reverse reveal">
+    <div class="algo-text">
+      <div class="algo-card-title">2. VQE (The Generalist)</div>
+      <div class="algo-controls">
+        <button class="btn btn-sm btn-outline" onclick="vqeCtrl.next()">Next Step <i class="ph-bold ph-arrow-right"></i></button>
+        <span class="algo-step-indicator" id="vqeStep">Step 1 of 4</span>
       </div>
-
-      <!-- Quantum card -->
-      <div class="maze-card">
-        <div class="maze-card-title">Quantum (Parallel) Search</div>
-        <div class="maze-canvas-wrapper">
-          <canvas id="quantumMaze" width="300" height="300"></canvas>
-        </div>
-        <div class="maze-label" id="quantumMazeLabel">Exploring all 4 paths...</div>
-        <div class="maze-desc">
-          Quantum algorithms represent all paths in superposition. 
-          They explore all routes simultaneously, and use interference to cancel out dead ends.
-        </div>
+      <div class="algo-desc" id="vqeDesc">Starts with a random circuit shape (ansatz). It's essentially flying blind.</div>
+      <div class="algo-badge badge-red">
+        <i class="ph-bold ph-warning-circle"></i>
+        Circuit shape is a guess. Works for chemistry, not great for scheduling.
       </div>
+    </div>
+    <div class="algo-canvas-wrapper">
+      <canvas id="vqeCanvas" width="360" height="260" class="algo-canvas"></canvas>
     </div>
   </div>
 
-  <div class="qubit-explain reveal">
-    <div class="callout">
-      <strong>Why does this matter for scheduling?</strong><br>
-      With 8 tasks, there are 2⁸ = 256 possible DRAM/CXL assignments. A classical
-      computer tries them one at a time. A quantum computer, using qubits, represents
-      all 256 states simultaneously and finds the best one through interference,
-      amplifying good solutions and cancelling bad ones. That's what RQAOA does.
+  <!-- Quantum Annealing -->
+  <div class="algo-row reveal">
+    <div class="algo-text">
+      <div class="algo-card-title">3. Quantum Annealing</div>
+      <div class="algo-controls">
+        <button class="btn btn-sm btn-outline" onclick="qaCtrl.next()">Next Step <i class="ph-bold ph-arrow-right"></i></button>
+        <span class="algo-step-indicator" id="qaStep">Step 1 of 4</span>
+      </div>
+      <div class="algo-desc" id="qaDesc">Start in chaos — high quantum energy. The system is highly excited.</div>
+      <div class="algo-badge badge-red">
+        <i class="ph-bold ph-warning-circle"></i>
+        Needs special D-Wave hardware. Connectivity limits mean some pairs can't interact.
+      </div>
+    </div>
+    <div class="algo-canvas-wrapper">
+      <canvas id="qaCanvas" width="360" height="260" class="algo-canvas"></canvas>
     </div>
   </div>
+
+  <!-- GM-QAOA -->
+  <div class="algo-row reverse reveal">
+    <div class="algo-text">
+      <div class="algo-card-title">4. GM-QAOA (The Heavyweight)</div>
+      <div class="algo-controls">
+        <button class="btn btn-sm btn-outline" onclick="gmqaCtrl.next()">Next Step <i class="ph-bold ph-arrow-right"></i></button>
+        <span class="algo-step-indicator" id="gmqaStep">Step 1 of 3</span>
+      </div>
+      <div class="algo-desc" id="gmqaDesc">Uses a complex 'mixer' to jump directly between valid memory assignments.</div>
+      <div class="algo-badge badge-red">
+        <i class="ph-bold ph-warning-circle"></i>
+        Requires massively complex circuits. Unfeasible on current noisy hardware.
+      </div>
+    </div>
+    <div class="algo-canvas-wrapper">
+      <canvas id="gmqaCanvas" width="360" height="260" class="algo-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- RQAOA -->
+  <div class="algo-row reveal" style="border: 2px solid var(--accent); padding: 32px; border-radius: 16px; background: rgba(67, 56, 202, 0.02);">
+    <div class="algo-text">
+      <div class="algo-card-title" style="color: var(--accent);">5. RQAOA (The Winner)</div>
+      <div class="algo-controls">
+        <button class="btn btn-sm btn-outline" style="border-color: var(--accent); color: var(--accent);" onclick="rqaoaCtrl.next()">Next Step <i class="ph-bold ph-arrow-right"></i></button>
+        <span class="algo-step-indicator" id="rqaoaStep">Step 1 of 7</span>
+      </div>
+      <div class="algo-desc" id="rqaoaDesc">1. Superposition: Every task is assigned to both DRAM and CXL simultaneously. The computer is holding all possibilities open.</div>
+      <div class="algo-badge badge-green">
+        <i class="ph-bold ph-check-circle"></i>
+        The problem shrinks every round. Circuit depth stays low and manageable.
+      </div>
+    </div>
+    <div class="algo-canvas-wrapper" style="box-shadow: 0 0 20px rgba(67, 56, 202, 0.15); background: white;">
+      <canvas id="rqaoaCanvas" width="360" height="260" class="algo-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- SCOREBOARD -->
+  <div class="reveal scoreboard-container">
+    <h3 style="text-align: center; margin-bottom: 24px; font-family: 'Outfit'; font-size: 24px;">The Bake-off Results</h3>
+    <table class="algo-scoreboard">
+      <thead>
+        <tr>
+          <th>Algorithm</th>
+          <th>Circuit Depth</th>
+          <th>Topology Limits</th>
+          <th>Result Quality</th>
+          <th>Datacenter Viability</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>QAOA</td>
+          <td class="cell-warn">High</td>
+          <td class="cell-bad">Severe</td>
+          <td class="cell-warn">Poor (Local Optima)</td>
+          <td class="cell-bad">Low</td>
+        </tr>
+        <tr>
+          <td>VQE</td>
+          <td class="cell-warn">Medium</td>
+          <td class="cell-ok">None</td>
+          <td class="cell-bad">Unpredictable</td>
+          <td class="cell-bad">Low</td>
+        </tr>
+        <tr>
+          <td>Quantum Annealing</td>
+          <td class="cell-ok">N/A</td>
+          <td class="cell-bad">Extreme (Hardware Fixed)</td>
+          <td class="cell-warn">Moderate</td>
+          <td class="cell-bad">Low</td>
+        </tr>
+        <tr>
+          <td>GM-QAOA</td>
+          <td class="cell-bad">Extreme</td>
+          <td class="cell-ok">None</td>
+          <td class="cell-ok">High</td>
+          <td class="cell-bad">Low (Noise)</td>
+        </tr>
+        <tr class="row-winner">
+          <td>RQAOA</td>
+          <td class="cell-ok">Low (Constant)</td>
+          <td class="cell-ok">None</td>
+          <td class="cell-ok">Optimal</td>
+          <td class="cell-ok">High</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
 </section>
 
 
 <!-- ================================================================
-     SECTION 3 — ARCHITECTURE WALKTHROUGH
+     SECTION 3 — ENTERPRISE DEPLOYMENT
 ================================================================ -->
-<section id="architecture" class="slide">
+<section id="deployment" class="slide">
   <p class="sec-tag reveal">Section 3</p>
-  <h2 class="reveal">System architecture: step by step</h2>
-  <p class="reveal" style="max-width:600px; font-size:16px; margin-bottom:8px;">
-    This is exactly how the system is built. Each stage feeds the next.
-    Click through to see the data flow from a CLI command to optimised results.
+  <h2 class="reveal">Enterprise Deployment: The ML Surrogate</h2>
+  <p class="reveal" style="max-width:700px; font-size:16px; margin-bottom: 60px;">
+    Live datacenters cannot wait in cloud queues for a quantum processor. Our solution? Use the quantum computer as a Teacher, and a fast Machine Learning model as the Student.
   </p>
 
-  <div class="arch-walkthrough reveal">
-    <div class="arch-controls">
-      <span class="arch-step-label" id="archStepLabel">Step 1 of 6</span>
+  <div class="pipeline-container reveal">
+    <!-- Stage 1 -->
+    <div class="pipe-stage">
+      <div class="pipe-icon" style="color: var(--accent); background: rgba(67, 56, 202, 0.1);">
+        <i class="ph-bold ph-atom"></i>
+      </div>
+      <div class="pipe-title">1. Offline Teacher</div>
+      <div class="pipe-desc">
+        We use RQAOA to solve the hardest, most congested scheduling graphs offline, generating mathematically perfect routing data.
+      </div>
+    </div>
+    
+    <div class="pipe-arrow"><i class="ph-bold ph-arrow-right"></i></div>
+
+    <!-- Stage 2 -->
+    <div class="pipe-stage">
+      <div class="pipe-icon" style="color: var(--amber); background: rgba(245, 158, 11, 0.1);">
+        <i class="ph-bold ph-brain"></i>
+      </div>
+      <div class="pipe-title">2. ML Student</div>
+      <div class="pipe-desc">
+        A Graph Neural Network (GNN) is trained on this quantum dataset. It learns to mimic RQAOA's logic without needing quantum hardware.
+      </div>
     </div>
 
-    <div class="arch-pipeline" id="archPipeline">
+    <div class="pipe-arrow"><i class="ph-bold ph-arrow-right"></i></div>
 
-      <div class="arch-stage active" data-stage="0">
-        <div class="arch-stage-left">
-          <div class="arch-stage-icon"><i class="ph-bold ph-terminal-window"></i></div>
-          <div class="arch-stage-name">main.py</div>
-          <div class="arch-stage-files">CLI entry point</div>
-        </div>
-        <div>
-          <p class="arch-stage-desc">
-            The user runs <code>python main.py --scheduler rqaoa</code>. This parses
-            the scheduler flag and passes control to the benchmark orchestrator.
-            Supports: <code>fcfs</code>, <code>rr</code>, <code>greedy</code>,
-            <code>greedy_priority</code>, <code>rqaoa</code>, or <code>all</code>.
-          </p>
-          <div class="arch-stage-detail">
-            <strong>Challenge we solved:</strong> Getting a single entry point to work
-            across both classical and quantum paths required designing a clean
-            scheduler interface (<code>BaseScheduler</code>) that all 5 algorithms
-            implement identically, so the orchestrator doesn't care which one it's running.
-          </div>
-        </div>
+    <!-- Stage 3 -->
+    <div class="pipe-stage">
+      <div class="pipe-icon" style="color: var(--green); background: rgba(5, 150, 105, 0.1);">
+        <i class="ph-bold ph-lightning"></i>
       </div>
-
-      <div class="arch-connector"></div>
-
-      <div class="arch-stage" data-stage="1">
-        <div class="arch-stage-left">
-          <div class="arch-stage-icon"><i class="ph-bold ph-flow-arrow"></i></div>
-          <div class="arch-stage-name">run_benchmarks.py</div>
-          <div class="arch-stage-files">Benchmark orchestrator</div>
-        </div>
-        <div>
-          <p class="arch-stage-desc">
-            Loads the canonical 8-task set from <code>tasks.py</code>, runs each
-            selected scheduler, collects assignments, then hands each assignment
-            to the execution layer. This is the central control loop of the
-            entire system.
-          </p>
-          <div class="arch-stage-detail">
-            <strong>Design decision:</strong> We separated "scheduling" from
-            "execution". The schedulers only produce a <code>{'{'}task_id: "DRAM" | "CXL"{'}'}</code>
-            dict. They never touch subprocesses. This made the system modular and
-            testable: you can unit-test schedulers without launching any real processes.
-          </div>
-        </div>
+      <div class="pipe-title">3. Local Inference</div>
+      <div class="pipe-desc">
+        The trained ML model is deployed directly in the datacenter scheduler, making near-optimal routing decisions in under 100 microseconds.
       </div>
-
-      <div class="arch-connector"></div>
-
-      <div class="arch-stage" data-stage="2">
-        <div class="arch-stage-left">
-          <div class="arch-stage-icon"><i class="ph-bold ph-list-checks"></i></div>
-          <div class="arch-stage-name">Classical Schedulers</div>
-          <div class="arch-stage-files">FCFS · Round Robin · Greedy · Priority</div>
-        </div>
-        <div>
-          <p class="arch-stage-desc">
-            Four classical baselines, each taking a different approach: arrival order (FCFS),
-            alternating assignment (Round Robin), sensitivity-sorted (Greedy), and
-            priority × sensitivity composite (Priority-Weighted). All output the same
-            <code>{'{'}task_id: "DRAM" | "CXL"{'}'}</code> dict format.
-          </p>
-          <div class="arch-stage-detail">
-            <strong>Key insight:</strong> Even the best classical scheduler (Greedy) only
-            considers one dimension at a time. It can't jointly optimise memory sensitivity,
-            priority, and capacity constraints simultaneously, which is where QUBO shines.
-          </div>
-        </div>
-      </div>
-
-      <div class="arch-connector"></div>
-
-      <div class="arch-stage" data-stage="3">
-        <div class="arch-stage-left">
-          <div class="arch-stage-icon"><i class="ph-bold ph-atom"></i></div>
-          <div class="arch-stage-name">Quantum (RQAOA)</div>
-          <div class="arch-stage-files">qubo_builder → qubo_converter → rqaoa_runner → result_parser</div>
-        </div>
-        <div>
-          <p class="arch-stage-desc">
-            The quantum path: First, <code>qubo_builder.py</code> constructs an 8×8
-            cost matrix encoding latency penalties and DRAM capacity constraints.
-            <code>rqaoa_runner.py</code> feeds this to the RQAOA optimizer (via OpenQAOA
-            on the Qiskit Aer simulator). The output bitstring is decoded by
-            <code>result_parser.py</code> into the same assignment dict.
-          </p>
-          <div class="arch-stage-detail">
-            <strong>Challenge we solved:</strong> OpenQAOA and our QUBO builder use
-            different matrix formats. We built <code>qubo_converter.py</code> to
-            translate between them, which is a deceptively tricky format-bridging step that
-            had to preserve coefficient signs exactly, or the optimizer would
-            minimise the wrong objective.
-          </div>
-        </div>
-      </div>
-
-      <div class="arch-connector"></div>
-
-      <div class="arch-stage" data-stage="4">
-        <div class="arch-stage-left">
-          <div class="arch-stage-icon"><i class="ph-bold ph-gear-six"></i></div>
-          <div class="arch-stage-name">Execution Layer</div>
-          <div class="arch-stage-files">task_orchestrator.py · task_runner.py</div>
-        </div>
-        <div>
-          <p class="arch-stage-desc">
-            Takes each scheduler's assignment dict and launches real OS subprocesses.
-            Each task runner allocates memory, performs work, and simulates the
-            CXL 3× latency penalty via calibrated <code>time.sleep()</code> calls.
-            DRAM tasks run at baseline speed; CXL tasks are visibly slower.
-          </p>
-          <div class="arch-stage-detail">
-            <strong>Challenge we solved:</strong> AWS EC2 doesn't support
-            <code>numactl</code> NUMA-faking (<code>CONFIG_NUMA_EMU</code> is not
-            compiled into Ubuntu kernels). We pivoted to software-level latency
-            simulation inside <code>task_runner.py</code>, injecting precise
-            per-access delays to replicate the 3× CXL penalty faithfully.
-            This decision is documented in <code>docs/numa_verification.md</code>.
-          </div>
-        </div>
-      </div>
-
-      <div class="arch-connector"></div>
-
-      <div class="arch-stage" data-stage="5">
-        <div class="arch-stage-left">
-          <div class="arch-stage-icon"><i class="ph-bold ph-chart-bar"></i></div>
-          <div class="arch-stage-name">Evaluation</div>
-          <div class="arch-stage-files">metrics.py · graphs.py → results/</div>
-        </div>
-        <div>
-          <p class="arch-stage-desc">
-            Computes average completion time, makespan, total latency cost, and DRAM
-            utilisation for each scheduler. Generates comparative bar charts and
-            saves everything to <code>results/</code> as CSVs and PNGs.
-          </p>
-          <div class="arch-stage-detail">
-            <strong>Output:</strong> <code>all_schedulers_summary.csv</code> with one
-            row per scheduler, and <code>execution_log.csv</code> with one row per task.
-            Four publication-ready plots comparing all five scheduling strategies.
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
-</section>
 
-
-<!-- ================================================================
-     SECTION 4 — WRIGHT BROTHERS MOMENT
-================================================================ -->
-<section id="wright" class="slide">
-  <p class="sec-tag reveal">Section 4</p>
-  <h2 class="reveal">"But it's only 8 tasks."</h2>
-
-  <div class="wright-content reveal">
-    <p style="font-size:16px; max-width:540px; margin: 0 auto;">
-      Yes. We scheduled 8 tasks. Let's talk about why that matters.
-    </p>
-
-    <div class="wright-video-card" style="margin: 36px auto 0;">
-      <img src="wright_flight.png" alt="Wright Brothers First Flight" style="width: 100%; height: auto; display: block; border-radius: 8px;" />
+  <div class="advantages-grid reveal" style="margin-top: 80px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;">
+    <div class="adv-card">
+      <h4 style="font-family: 'Outfit', sans-serif; font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--text);">
+        <i class="ph-bold ph-rocket" style="color:var(--accent); font-size: 24px;"></i> Microsecond Latency
+      </h4>
+      <p style="font-size: 15px; color: var(--text-sub); line-height: 1.6;">
+        Live QPU calls add massive cloud and queue latency. The ML surrogate makes near-optimal decisions in <strong>< 100 microseconds</strong> directly in the classical OS.
+      </p>
     </div>
-
-    <p class="wright-quote">
-      "The first flight lasted 12 seconds and covered 120 feet.<br>
-      Nobody asked the Wright Brothers to fly across the Atlantic that day."
-    </p>
-
-    <div class="wright-scale">
-      <div class="wright-scale-card">
-        <div class="wright-scale-val" style="color:var(--accent);">8</div>
-        <div class="wright-scale-label">Tasks today</div>
-      </div>
-      <div class="wright-scale-card">
-        <div class="wright-scale-val" style="color:var(--text);">2⁸</div>
-        <div class="wright-scale-label">256 states</div>
-      </div>
-      <div class="wright-scale-card">
-        <div class="wright-scale-val" style="color:var(--red);">1,000+</div>
-        <div class="wright-scale-label">Real DC tasks</div>
-      </div>
-      <div class="wright-scale-card">
-        <div class="wright-scale-val" style="color:var(--red);">2¹⁰⁰⁰</div>
-        <div class="wright-scale-label">Combinations</div>
-      </div>
+    <div class="adv-card">
+      <h4 style="font-family: 'Outfit', sans-serif; font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--text);">
+        <i class="ph-bold ph-target" style="color:var(--green); font-size: 24px;"></i> 95%+ Global Optima
+      </h4>
+      <p style="font-size: 15px; color: var(--text-sub); line-height: 1.6;">
+        While classical Greedy algorithms get trapped in local optima, the ML model (GNN) learns hidden topological correlations from the quantum data to hit the global optimum.
+      </p>
     </div>
-
-    <p class="wright-footer-msg">
-      At 1,000+ tasks, classical schedulers face 2¹⁰⁰⁰ possible assignments, a
-      number so large it has more digits than atoms in the observable universe.
-      Greedy heuristics sample a negligible fraction. Quantum algorithms like RQAOA
-      explore the full solution space through superposition and interference.
-      That's the value: not 8 tasks, but the proof that the approach works.
-    </p>
-
-    <a href="../smarth/index.html" class="next-section-card">
-      <i class="ph-bold ph-arrow-right"></i>
-      Next: Classical Schedulers
-    </a>
+    <div class="adv-card">
+      <h4 style="font-family: 'Outfit', sans-serif; font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; color: var(--text);">
+        <i class="ph-bold ph-shield-check" style="color:var(--amber); font-size: 24px;"></i> Zero Hardware Lock-in
+      </h4>
+      <p style="font-size: 15px; color: var(--text-sub); line-height: 1.6;">
+        Runs purely on standard Datacenter hardware. The quantum computer is only used offline, meaning no expensive live dependencies or network failure points.
+      </p>
+    </div>
   </div>
 </section>
 
@@ -1214,7 +837,7 @@ const revealObs = new IntersectionObserver((es) => {
 document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
 /* Progress dots */
-const SECTIONS = ['hero','datacenter','qubit','architecture','wright'];
+const SECTIONS = ['hero','datacenter','why-rqaoa','deployment'];
 const dots = document.querySelectorAll('.dot');
 const secObs = new IntersectionObserver((es) => {
   es.forEach(e => {
@@ -1557,335 +1180,355 @@ SECTIONS.forEach(id => { const el = document.getElementById(id); if (el) secObs.
 })();
 
 
-/* ===== CLASSICAL BIT TOGGLE ===== */
-let bitState = 0;
-function toggleBit() {
-  bitState = 1 - bitState;
-  const track = document.getElementById('bitSwitch');
-  const thumb = document.getElementById('bitThumb');
-  const label = document.getElementById('bitLabel');
-  track.classList.toggle('on', bitState === 1);
-  thumb.textContent = bitState;
-  label.textContent = 'State: ' + bitState;
-}
+/* ===== ALGORITHM ANIMATIONS (Phase 2/3) ===== */
+const NODES_BASE = [
+  {x: 80, y: 70}, {x: 180, y: 50}, {x: 280, y: 70},
+  {x: 80, y: 190}, {x: 180, y: 210}, {x: 280, y: 190}
+];
+const EDGES_BASE = [[0,1], [1,2], [0,3], [1,4], [2,5], [3,4], [4,5]];
 
-
-/* ===== QUBIT — SCHRÖDINGER'S BOX ===== */
-let boxOpen = false;
-let spinInterval;
-
-// Spin the value between 0 and 1 rapidly
-function startSpin() {
-  const sv = document.getElementById('spinVal');
-  spinInterval = setInterval(() => {
-    sv.textContent = Math.random() < 0.5 ? '0' : '1';
-  }, 80);
-}
-startSpin();
-
-function openBox() {
-  if (boxOpen) return;
-  boxOpen = true;
-  clearInterval(spinInterval);
-
-  const lid = document.getElementById('boxLid');
-  const shell = document.getElementById('boxShell');
-  const sv = document.getElementById('spinVal');
-  const label = document.getElementById('qubitLabel');
-  const hint = document.getElementById('qubitHint');
-  const reset = document.getElementById('qubitReset');
-
-  lid.classList.add('open');
-  shell.classList.add('opened');
-  sv.classList.add('collapsed');
-
-  // Collapse to a random value
-  const result = Math.random() < 0.5 ? '0' : '1';
-  sv.textContent = result;
-
-  label.textContent = 'State: |' + result + '⟩ (collapsed!)';
-  hint.textContent = 'The act of observation forced a definite state.';
-  reset.style.display = 'inline-flex';
-}
-
-function resetBox() {
-  boxOpen = false;
-  const lid = document.getElementById('boxLid');
-  const shell = document.getElementById('boxShell');
-  const sv = document.getElementById('spinVal');
-  const label = document.getElementById('qubitLabel');
-  const hint = document.getElementById('qubitHint');
-  const reset = document.getElementById('qubitReset');
-
-  lid.classList.remove('open');
-  shell.classList.remove('opened');
-  sv.classList.remove('collapsed');
-  label.textContent = 'State: |0⟩ + |1⟩ (superposition)';
-  hint.textContent = 'The value is both 0 AND 1 until you look.';
-  reset.style.display = 'none';
-  startSpin();
-}
-
-
-/* ===== MAZE PATH EXPLORATION DEMO ===== */
-(function() {
-  const cClas = document.getElementById('classicalMaze');
-  const cQuan = document.getElementById('quantumMaze');
-  if (!cClas || !cQuan) return;
-  const ctxC = cClas.getContext('2d');
-  const ctxQ = cQuan.getContext('2d');
-  const labelC = document.getElementById('classicalMazeLabel');
-  const labelQ = document.getElementById('quantumMazeLabel');
-
-  const padding = 20;
-  const cols = 6, rows = 6;
-  const cellSize = (cClas.width - padding * 2) / cols;
-
-  // Paths
-  const paths = [
-    [[0,0], [1,0], [2,0], [2,1], [2,2], [1,2], [0,2]], // Dead End 1
-    [[0,0], [1,0], [2,0], [3,0], [4,0], [4,1], [4,2], [3,2]], // Dead End 2
-    [[0,0], [0,1], [0,2], [0,3], [1,3], [2,3], [2,4], [1,4]], // Dead End 3
-    [[0,0], [0,1], [1,1], [1,2], [2,2], [3,2], [3,3], [3,4], [4,4], [4,5], [5,5]] // SUCCESS!
-  ];
-
-  // Grid walls
-  const mazeGrid = Array(rows).fill().map(() => Array(cols).fill(0));
-  paths.forEach(p => {
-    p.forEach(([x, y]) => {
-      if (y < rows && x < cols) mazeGrid[y][x] = 1;
-    });
-  });
-
-  // Classical state
-  let clasPathIdx = 0;
-  let clasStep = 0;
-  let clasHoldFrames = 0;
-  let clasState = 'explore'; // 'explore' | 'hold' | 'success'
-
-  // Quantum state
-  let quanStep = 0;
-  let quanState = 'explore'; // 'explore' | 'success'
-  let quanHoldFrames = 0;
-
-  function drawGrid(ctx) {
-    ctx.clearRect(0, 0, cClas.width, cClas.height);
-    // Draw cells
-    for (let r = 0; r < rows; r++) {
-      for (let cVal = 0; cVal < cols; cVal++) {
-        const x = padding + cVal * cellSize;
-        const y = padding + r * cellSize;
-        if (mazeGrid[r][cVal] === 0) {
-          // Wall
-          ctx.fillStyle = '#E5E7EB';
-          ctx.beginPath();
-          ctx.roundRect(x + 2, y + 2, cellSize - 4, cellSize - 4, 4);
-          ctx.fill();
-        } else {
-          // Passage
-          ctx.fillStyle = '#FFFFFF';
-          ctx.strokeStyle = 'rgba(229,231,235,.5)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.roundRect(x + 2, y + 2, cellSize - 4, cellSize - 4, 4);
-          ctx.fill();
-          ctx.stroke();
-        }
-      }
-    }
-
-    // Start circle
-    const startX = padding + cellSize / 2;
-    const startY = padding + cellSize / 2;
+function drawGraph(ctx, nodes, edges) {
+  ctx.clearRect(0,0,360,260);
+  edges.forEach(e => {
     ctx.beginPath();
-    ctx.arc(startX, startY, 8, 0, Math.PI * 2);
-    ctx.fillStyle = '#4338CA';
-    ctx.fill();
-    ctx.font = '700 8px JetBrains Mono';
-    ctx.fillStyle = '#4338CA';
-    ctx.textAlign = 'center';
-    ctx.fillText('START', startX, startY - 12);
-
-    // Exit circle
-    const exitX = padding + (cols - 0.5) * cellSize;
-    const exitY = padding + (rows - 0.5) * cellSize;
-    ctx.beginPath();
-    ctx.arc(exitX, exitY, 8, 0, Math.PI * 2);
-    ctx.fillStyle = '#059669';
-    ctx.fill();
-    ctx.font = '700 8px JetBrains Mono';
-    ctx.fillStyle = '#059669';
-    ctx.textAlign = 'center';
-    ctx.fillText('EXIT', exitX, exitY - 12);
-  }
-
-  function drawPathLine(ctx, path, maxNodes, color, isGlowing) {
-    if (path.length === 0 || maxNodes === 0) return;
-    ctx.beginPath();
-    const startX = padding + (path[0][0] + 0.5) * cellSize;
-    const startY = padding + (path[0][1] + 0.5) * cellSize;
-    ctx.moveTo(startX, startY);
-
-    const limit = Math.min(path.length, maxNodes);
-    for (let i = 1; i < limit; i++) {
-      const px = padding + (path[i][0] + 0.5) * cellSize;
-      const py = padding + (path[i][1] + 0.5) * cellSize;
-      ctx.lineTo(px, py);
-    }
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    if (isGlowing) {
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 10;
-    }
+    ctx.moveTo(nodes[e.from].x, nodes[e.from].y);
+    ctx.lineTo(nodes[e.to].x, nodes[e.to].y);
+    ctx.strokeStyle = e.color || 'rgba(156,163,175,0.3)';
+    ctx.lineWidth = e.width || 2;
+    if (e.dash) ctx.setLineDash(e.dash); else ctx.setLineDash([]);
     ctx.stroke();
-    ctx.shadowBlur = 0; // reset
-  }
-
-  let lastUpdate = 0;
-  function animate(time) {
-    if (time - lastUpdate > 120) {
-      lastUpdate = time;
-      updateClassical();
-      updateQuantum();
-    }
-    drawGrid(ctxC);
-    renderClassical();
-
-    drawGrid(ctxQ);
-    renderQuantum();
-
-    requestAnimationFrame(animate);
-  }
-
-  function updateClassical() {
-    if (clasState === 'explore') {
-      const activePath = paths[clasPathIdx];
-      clasStep++;
-      if (clasStep >= activePath.length) {
-        if (clasPathIdx === paths.length - 1) {
-          clasState = 'success';
-          clasHoldFrames = 20;
-        } else {
-          clasState = 'hold';
-          clasHoldFrames = 5;
-        }
-      }
-    } else if (clasState === 'hold') {
-      clasHoldFrames--;
-      if (clasHoldFrames <= 0) {
-        clasPathIdx = (clasPathIdx + 1) % paths.length;
-        clasStep = 0;
-        clasState = 'explore';
-      }
-    } else if (clasState === 'success') {
-      clasHoldFrames--;
-      if (clasHoldFrames <= 0) {
-        clasPathIdx = 0;
-        clasStep = 0;
-        clasState = 'explore';
-      }
-    }
-  }
-
-  function renderClassical() {
-    const activePath = paths[clasPathIdx];
-    if (clasState === 'explore') {
-      labelC.textContent = `Testing Path ${clasPathIdx + 1} of ${paths.length}...`;
-      labelC.style.color = 'var(--accent)';
-      drawPathLine(ctxC, activePath, clasStep, '#4338CA', false);
-      if (clasStep > 0 && clasStep <= activePath.length) {
-        const curr = activePath[clasStep - 1];
-        const hx = padding + (curr[0] + 0.5) * cellSize;
-        const hy = padding + (curr[1] + 0.5) * cellSize;
-        ctxC.beginPath();
-        ctxC.arc(hx, hy, 5, 0, Math.PI * 2);
-        ctxC.fillStyle = '#4338CA';
-        ctxC.fill();
-      }
-    } else if (clasState === 'hold') {
-      labelC.textContent = `Path ${clasPathIdx + 1}: DEAD END (Backtracking)`;
-      labelC.style.color = 'var(--red)';
-      drawPathLine(ctxC, activePath, activePath.length, '#DC2626', false);
-    } else if (clasState === 'success') {
-      labelC.textContent = `Exit Found! (Total steps: 30)`;
-      labelC.style.color = 'var(--green)';
-      drawPathLine(ctxC, activePath, activePath.length, '#059669', true);
-    }
-  }
-
-  function updateQuantum() {
-    if (quanState === 'explore') {
-      quanStep++;
-      const maxLen = Math.max(...paths.map(p => p.length));
-      if (quanStep >= maxLen) {
-        quanState = 'success';
-        quanHoldFrames = 20;
-      }
-    } else if (quanState === 'success') {
-      quanHoldFrames--;
-      if (quanHoldFrames <= 0) {
-        quanStep = 0;
-        quanState = 'explore';
-      }
-    }
-  }
-
-  function renderQuantum() {
-    if (quanState === 'explore') {
-      labelQ.textContent = `Exploring all 4 paths simultaneously...`;
-      labelQ.style.color = 'var(--accent)';
-      paths.forEach(p => {
-        drawPathLine(ctxQ, p, quanStep, 'rgba(67, 56, 202, 0.45)', true);
-      });
-    } else if (quanState === 'success') {
-      labelQ.textContent = `All paths resolved (Exit highlighted)`;
-      labelQ.style.color = 'var(--green)';
-      paths.forEach((p, idx) => {
-        if (idx === paths.length - 1) {
-          drawPathLine(ctxQ, p, p.length, '#059669', true);
-        } else {
-          drawPathLine(ctxQ, p, p.length, 'rgba(229, 231, 235, 0.15)', false);
-        }
-      });
-    }
-  }
-
-  requestAnimationFrame(animate);
-})();
-
-
-/* ===== ARCHITECTURE WALKTHROUGH ===== */
-let archIdx = 0;
-const archStages = document.querySelectorAll('.arch-stage');
-const archLabel = document.getElementById('archStepLabel');
-
-function archUpdate(skipScroll) {
-  archStages.forEach((s, i) => s.classList.toggle('active', i === archIdx));
-  if (archLabel) {
-    archLabel.textContent = `Step ${archIdx + 1} of ${archStages.length}`;
-  }
-  if (!skipScroll) {
-    archStages[archIdx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-}
-
-function archStep(dir) {
-  archIdx = Math.max(0, Math.min(archStages.length - 1, archIdx + dir));
-  archUpdate();
-}
-
-// Make stages clickable
-archStages.forEach((stage, idx) => {
-  stage.addEventListener('click', () => {
-    archIdx = idx;
-    archUpdate(true);
   });
-});
+  ctx.setLineDash([]);
+  nodes.forEach(n => {
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r || 18, 0, Math.PI*2);
+    ctx.fillStyle = n.color || '#F3F4F6';
+    ctx.fill();
+    ctx.strokeStyle = n.stroke || '#9CA3AF';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+    
+    if (n.icon) {
+      ctx.font = '14px sans-serif';
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(n.icon, n.x, n.y+1);
+    }
+  });
+}
 
-archUpdate(true);
+class AlgoController {
+  constructor(id, stepsTexts) {
+    this.id = id;
+    this.step = 0;
+    this.maxSteps = stepsTexts.length;
+    this.stepsTexts = stepsTexts;
+    this.canvas = document.getElementById(`${id}Canvas`);
+    this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
+    this.descEl = document.getElementById(`${id}Desc`);
+    this.stepEl = document.getElementById(`${id}Step`);
+    this.time = 0;
+    this.updateText();
+  }
+  next() {
+    this.step = (this.step + 1) % this.maxSteps;
+    this.updateText();
+  }
+  updateText() {
+    if(this.descEl) this.descEl.textContent = this.stepsTexts[this.step];
+    if(this.stepEl) this.stepEl.textContent = `Step ${this.step + 1} of ${this.maxSteps}`;
+  }
+  tick() {
+    this.time += 0.05;
+  }
+}
+
+const qaoaCtrl = new AlgoController('qaoa', [
+  "All 2⁶ possible assignments at once. The quantum state is in superposition.",
+  "Quantum circuit looks at nearby pairs. It evaluates the cost of local connections.",
+  "Measurement collapses everything to an imperfect guess. Notice the wrong assignment.",
+  "Repeat with slightly different parameters to try to find a better answer."
+]);
+
+const vqeCtrl = new AlgoController('vqe', [
+  "Starts with a random circuit shape (ansatz). It's essentially flying blind.",
+  "Classical optimizer slowly adjusts the parameters to minimize the energy.",
+  "Result found — but because the circuit shape was a guess, there's no guarantee it's the optimal schedule.",
+  "Reset and try again with a new ansatz..."
+]);
+
+const qaCtrl = new AlgoController('qa', [
+  "Start in chaos — high quantum energy. The system is highly excited.",
+  "Quantum energy is slowly reduced, like cooling metal, settling into lower energy states.",
+  "Hit a hardware connectivity wall. These two tasks can't directly connect on the hardware.",
+  "Hardware topology forced a compromise. The final state is suboptimal due to physical limits."
+]);
+
+const gmqaCtrl = new AlgoController('gmqa', [
+  "Uses a complex 'mixer' to jump directly between valid memory assignments.",
+  "Provides a very high quality search path through the solution space.",
+  "However, the required circuit depth is massive, making it fail on today's noisy quantum hardware."
+]);
+
+const rqaoaCtrl = new AlgoController('rqaoa', [
+  "1. Superposition: Every task is assigned to both DRAM and CXL simultaneously. The computer is holding all possibilities open.",
+  "2. Correlation: The circuit asks: which two tasks almost always end up on the same tier? It finds the strongest pair.",
+  "3. Lock & Eliminate: Make a rule: whatever tier A gets, B gets too. B is eliminated. The problem just got smaller.",
+  "4. New View: B's connections transfer to A. A suddenly connects to far-away tasks. The algorithm gains a wider view.",
+  "5. Repeat: Run the circuit again on the smaller graph. Find the next strongest pair and eliminate. It accelerates.",
+  "6. Classical Finish: Eventually the graph is tiny (e.g., 5 tasks). A classical computer solves the rest instantly.",
+  "7. Reconstruction: Run the story backward. Bring back eliminated tasks and apply their locked rules. The full schedule is colored!"
+]);
+
+function renderAnim() {
+  qaoaCtrl.tick();
+  vqeCtrl.tick();
+  qaCtrl.tick();
+  gmqaCtrl.tick();
+  rqaoaCtrl.tick();
+
+  // render QAOA
+  if(qaoaCtrl.ctx) {
+     let nodes = NODES_BASE.map(n => ({...n}));
+     let edges = EDGES_BASE.map(e => ({from: e[0], to: e[1]}));
+     
+     if (qaoaCtrl.step === 0 || qaoaCtrl.step === 3) {
+       nodes.forEach(n => { n.color = Math.random() > 0.5 ? '#00C9A7' : '#845EC2'; n.stroke = n.color; });
+       edges.forEach(e => { if (Math.random() > 0.5) { e.color = '#FFD700'; e.width = 3; } });
+     } else if (qaoaCtrl.step === 1) {
+       const waveX = (Math.sin(qaoaCtrl.time * 2) * 0.5 + 0.5) * 360;
+       nodes.forEach(n => {
+         n.color = '#E5E7EB'; n.stroke = '#9CA3AF';
+         if (Math.abs(n.x - waveX) < 50) { n.color = '#FEF08A'; n.stroke = '#EAB308'; }
+       });
+       edges.forEach(e => {
+         const mx = (nodes[e.from].x + nodes[e.to].x)/2;
+         if (Math.abs(mx - waveX) < 50) { e.color = '#FFD700'; e.width = 3; }
+       });
+     } else if (qaoaCtrl.step === 2) {
+       nodes.forEach((n, i) => { n.color = (i%2===0) ? '#00C9A7' : '#845EC2'; n.stroke = n.color; });
+       nodes[2].color = '#FF6B6B'; nodes[2].stroke = '#DC2626'; nodes[2].icon = '✕';
+     }
+     drawGraph(qaoaCtrl.ctx, nodes, edges);
+  }
+
+  // render VQE
+  if(vqeCtrl.ctx) {
+     let nodes = NODES_BASE.map(n => ({...n}));
+     let edges = EDGES_BASE.map(e => ({from: e[0], to: e[1]}));
+     
+     if (vqeCtrl.step === 0 || vqeCtrl.step === 3) {
+       nodes.forEach(n => {
+         const r = Math.random()*255, g=Math.random()*255, b=Math.random()*255;
+         n.color = `rgba(${r},${g},${b},0.3)`; n.stroke = `rgba(${r},${g},${b},0.8)`;
+       });
+       edges.forEach(e => { e.width = Math.random()*4+1; });
+     } else if (vqeCtrl.step === 1) {
+       const t = Math.sin(vqeCtrl.time) * 0.5 + 0.5;
+       nodes.forEach((n,i) => {
+         const tc = (i<3) ? [0,201,167] : [132,94,194];
+         const r = 200 + (tc[0]-200)*t, g = 200 + (tc[1]-200)*t, b = 200 + (tc[2]-200)*t;
+         n.color = `rgb(${r},${g},${b})`; n.stroke = `rgb(${r-30},${g-30},${b-30})`;
+       });
+     } else if (vqeCtrl.step === 2) {
+       nodes.forEach((n,i) => { n.color = (i<3) ? '#00C9A7' : '#845EC2'; n.stroke = n.color; });
+       nodes[4].color = '#FF6B6B'; nodes[4].stroke = '#DC2626'; nodes[4].icon = '✕';
+     }
+     drawGraph(vqeCtrl.ctx, nodes, edges);
+  }
+
+  // render QA
+  if(qaCtrl.ctx) {
+     let nodes = NODES_BASE.map(n => ({...n}));
+     let edges = EDGES_BASE.map(e => ({from: e[0], to: e[1]}));
+     
+     if (qaCtrl.step === 0) {
+       nodes.forEach(n => {
+         n.color = Math.random() > 0.5 ? '#00C9A7' : '#845EC2'; n.stroke = n.color;
+         n.y += (Math.random()-0.5)*15; n.x += (Math.random()-0.5)*15;
+       });
+     } else if (qaCtrl.step === 1) {
+       const t = Math.max(0, Math.sin(qaCtrl.time));
+       nodes.forEach((n,i) => {
+         if (Math.random() < t) {
+           n.color = Math.random() > 0.5 ? '#00C9A7' : '#845EC2'; n.stroke = n.color;
+         } else {
+           n.color = (i%3===0) ? '#00C9A7' : '#845EC2'; n.stroke = n.color;
+         }
+       });
+     } else if (qaCtrl.step === 2) {
+       nodes.forEach((n,i) => { n.color = (i%3===0) ? '#00C9A7' : '#845EC2'; n.stroke = n.color; });
+       nodes[1].stroke = '#DC2626'; nodes[1].color = '#FF6B6B'; nodes[1].dash = [4,4];
+       nodes[4].stroke = '#DC2626'; nodes[4].color = '#FF6B6B'; nodes[4].dash = [4,4];
+       edges.forEach(e => {
+         if ((e.from===1 && e.to===4) || (e.from===0 && e.to===4)) { e.color='#DC2626'; e.width=3; e.dash=[5,5]; }
+       });
+     } else if (qaCtrl.step === 3) {
+       nodes.forEach((n,i) => { n.color = (i%3===0) ? '#00C9A7' : '#845EC2'; n.stroke = n.color; });
+       nodes[4].color = '#FF6B6B'; nodes[4].stroke = '#DC2626'; nodes[4].icon = '✕';
+     }
+     drawGraph(qaCtrl.ctx, nodes, edges);
+  }
+
+  // render GM-QAOA
+  if(gmqaCtrl.ctx) {
+     let nodes = NODES_BASE.map(n => ({...n}));
+     let edges = EDGES_BASE.map(e => ({from: e[0], to: e[1]}));
+     
+     if (gmqaCtrl.step === 0) {
+       nodes.forEach(n => { n.color = Math.random() > 0.5 ? '#00C9A7' : '#845EC2'; n.stroke = n.color; });
+     } else if (gmqaCtrl.step === 1) {
+       nodes.forEach((n,i) => { n.color = (i%2===0) ? '#00C9A7' : '#845EC2'; n.stroke = n.color; });
+       if (Math.sin(gmqaCtrl.time * 4) > 0) {
+         nodes[1].color = '#FEF08A'; nodes[1].stroke = '#EAB308';
+         nodes[2].color = '#FEF08A'; nodes[2].stroke = '#EAB308';
+       }
+     } else if (gmqaCtrl.step === 2) {
+       nodes.forEach(n => { n.color = '#F3F4F6'; n.stroke = '#9CA3AF'; n.icon = '?'; });
+       nodes.forEach(n => { if (Math.random() > 0.8) n.color = '#FF6B6B'; });
+     }
+     drawGraph(gmqaCtrl.ctx, nodes, edges);
+  }
+
+  // render RQAOA
+  if(rqaoaCtrl.ctx) {
+     let ctx = rqaoaCtrl.ctx;
+     const origNodes = [
+       {id:0, x: 80, y: 70}, {id:1, x: 180, y: 50}, {id:2, x: 280, y: 70},
+       {id:3, x: 80, y: 190}, {id:4, x: 180, y: 210}, {id:5, x: 280, y: 190}
+     ];
+     const origEdges = [[0,1], [1,2], [0,3], [1,4], [2,5], [3,4], [4,5]];
+     
+     ctx.clearRect(0,0,360,260);
+     let t = rqaoaCtrl.time;
+     let s = rqaoaCtrl.step;
+     
+     let nodes = JSON.parse(JSON.stringify(origNodes));
+     let edges = JSON.parse(JSON.stringify(origEdges));
+
+     function drawE(from, to, color, width, dash=[]) {
+       ctx.beginPath(); ctx.moveTo(from.x, from.y); ctx.lineTo(to.x, to.y);
+       ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.stroke(); ctx.setLineDash([]);
+     }
+     function drawN(n, color, stroke, icon='') {
+       ctx.beginPath(); ctx.arc(n.x, n.y, 18, 0, Math.PI*2);
+       ctx.fillStyle = color; ctx.fill();
+       ctx.strokeStyle = stroke; ctx.lineWidth = 2.5; ctx.stroke();
+       if(icon) {
+         ctx.font = '12px sans-serif'; ctx.fillStyle = 'white';
+         if(icon==='0+1' || icon==='4+5') ctx.fillStyle = stroke; // dark text
+         ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(icon, n.x, n.y+1);
+       }
+     }
+
+     if (s === 0) { // Superposition
+       edges.forEach(e => drawE(nodes[e[0]], nodes[e[1]], 'rgba(156,163,175,0.3)', 2));
+       nodes.forEach(n => {
+         let c = Math.random() > 0.5 ? '#00C9A7' : '#845EC2';
+         drawN(n, c, c);
+       });
+     } 
+     else if (s === 1) { // Correlation
+       edges.forEach(e => {
+         let color = (e[0]===0 && e[1]===1) ? '#FFD700' : 'rgba(156,163,175,0.3)';
+         let width = (e[0]===0 && e[1]===1) ? 4 : 2;
+         drawE(nodes[e[0]], nodes[e[1]], color, width);
+       });
+       nodes.forEach(n => drawN(n, '#F3F4F6', '#9CA3AF'));
+       drawN(nodes[0], '#FEF08A', '#EAB308'); drawN(nodes[1], '#FEF08A', '#EAB308');
+     }
+     else if (s === 2) { // Lock & Eliminate
+       let progress = Math.min(1, (t % 4) / 1.5);
+       nodes[1].x = nodes[1].x + (nodes[0].x - nodes[1].x) * progress;
+       nodes[1].y = nodes[1].y + (nodes[0].y - nodes[1].y) * progress;
+       
+       edges.forEach(e => {
+         if (e[0]===0 && e[1]===1) {
+           drawE(nodes[0], nodes[1], '#059669', 4);
+         } else {
+           drawE(nodes[e[0]], nodes[e[1]], 'rgba(156,163,175,0.3)', 2);
+         }
+       });
+       nodes.forEach((n,i) => {
+         if(i===0 || i===1) drawN(n, '#D1FAE5', '#059669', '🔒');
+         else drawN(n, '#F3F4F6', '#9CA3AF');
+       });
+     }
+     else if (s === 3) { // New View
+       nodes[1].x = nodes[0].x; nodes[1].y = nodes[0].y;
+       edges.forEach(e => {
+         if (e[0]===0 && e[1]===1) return;
+         let isNewEdge = (e[0]===1 || e[1]===1);
+         let dash = (isNewEdge && (t%2)<1) ? [5,5] : []; 
+         let color = isNewEdge ? '#3B82F6' : 'rgba(156,163,175,0.3)';
+         let width = isNewEdge ? 3 : 2;
+         drawE(nodes[e[0]], nodes[e[1]], color, width, dash);
+       });
+       nodes.forEach((n,i) => {
+         if(i===1) return;
+         if(i===0) drawN(n, '#D1FAE5', '#059669', '0+1');
+         else drawN(n, '#F3F4F6', '#9CA3AF');
+       });
+     }
+     else if (s === 4) { // Repeat
+       nodes[1].x = nodes[0].x; nodes[1].y = nodes[0].y;
+       let progress = Math.min(1, (t % 4) / 1.5);
+       nodes[5].x = nodes[5].x + (nodes[4].x - nodes[5].x) * progress;
+       nodes[5].y = nodes[5].y + (nodes[4].y - nodes[5].y) * progress;
+
+       edges.forEach(e => {
+         if(e[0]===0 && e[1]===1) return;
+         if(e[0]===4 && e[1]===5) drawE(nodes[4], nodes[5], '#059669', 4);
+         else drawE(nodes[e[0]], nodes[e[1]], 'rgba(156,163,175,0.3)', 2);
+       });
+       nodes.forEach((n,i) => {
+         if(i===1) return;
+         if(i===0) drawN(n, '#D1FAE5', '#059669', '0+1');
+         else if(i===4||i===5) drawN(n, '#D1FAE5', '#059669', '🔒');
+         else drawN(n, '#F3F4F6', '#9CA3AF');
+       });
+     }
+     else if (s === 5) { // Classical Finish
+       nodes[1].x = nodes[0].x; nodes[1].y = nodes[0].y;
+       nodes[5].x = nodes[4].x; nodes[5].y = nodes[4].y;
+       
+       edges.forEach(e => {
+         if(e[0]===0 && e[1]===1) return;
+         if(e[0]===4 && e[1]===5) return;
+         drawE(nodes[e[0]], nodes[e[1]], 'rgba(156,163,175,0.8)', 2);
+       });
+       drawN(nodes[0], '#00C9A7', '#059669', '0+1'); // Teal
+       drawN(nodes[2], '#845EC2', '#4338CA');        // Purple
+       drawN(nodes[3], '#845EC2', '#4338CA');        // Purple
+       drawN(nodes[4], '#00C9A7', '#059669', '4+5'); // Teal
+     }
+     else if (s === 6) { // Reconstruction
+       let progress = Math.min(1, (t % 4) / 1.5);
+       nodes[1].x = nodes[0].x + (origNodes[1].x - nodes[0].x) * progress;
+       nodes[1].y = nodes[0].y + (origNodes[1].y - nodes[0].y) * progress;
+       nodes[5].x = nodes[4].x + (origNodes[5].x - nodes[4].x) * progress;
+       nodes[5].y = nodes[4].y + (origNodes[5].y - nodes[4].y) * progress;
+
+       edges.forEach(e => { drawE(nodes[e[0]], nodes[e[1]], 'rgba(156,163,175,0.8)', 2); });
+       nodes.forEach(n => {
+         let c = (n.id===0||n.id===1||n.id===4||n.id===5) ? '#00C9A7' : '#845EC2';
+         let str = (n.id===0||n.id===1||n.id===4||n.id===5) ? '#059669' : '#4338CA';
+         drawN(n, c, str);
+       });
+     }
+  }
+
+  requestAnimationFrame(renderAnim);
+}
+
+window.qaoaCtrl = qaoaCtrl;
+window.vqeCtrl = vqeCtrl;
+window.qaCtrl = qaCtrl;
+window.gmqaCtrl = gmqaCtrl;
+window.rqaoaCtrl = rqaoaCtrl;
+renderAnim();
+
+
 </script>
 </body>
 </html>

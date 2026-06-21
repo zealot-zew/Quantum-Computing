@@ -2,11 +2,15 @@
 
 ## Quantum-Assisted Optimization Engine for CXL-Aware Hybrid Scheduling
 
+These rules are not applicable for the website development. 
+
 > **Read this file first.** It tells you the rules, the file map, and the current project state.
 > Quantum math (Ising, QUBO, QAOA, RQAOA) → `docs/math_foundations.md`.
 > Sprint tasks and day-by-day goals → `Team_Sprint_5People_7Days.md`.
 
 ---
+
+
 
 ## 👥 Team & Ownership
 
